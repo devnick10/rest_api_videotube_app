@@ -5,12 +5,14 @@ import { User } from '../models/user.model';
 import {Request} from 'express';
 import { cloudinaryUploader, deleteFromCloudinary } from '../utils/cloudinary';
 import mongoose from 'mongoose';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 interface IRequest extends Request{
     files?:any
+    
 }
 
-const generateAccessAndRefreshToken = async(userid:mongoose.Types.ObjectId)=>{
+const generateAccessAndRefreshToken = async(userid:mongoose.Types.ObjectId):Promise<{ accessToken: string; refreshToken: string }>=>{
 try {
     
      const user = await User.findById(userid);
@@ -19,7 +21,7 @@ try {
     
      const accessToken = user.generateAccessToken()
      const refreshToken = user.generateRefreshToken()
-     
+
      user.refreshToken = refreshToken;
     
      await user.save({validateBeforeSave:false});
@@ -35,7 +37,7 @@ try {
 }
 
 
-const registerUser = asyncHandler(async(req:IRequest,res,next)=>{
+const registerUser = asyncHandler(async(req:IRequest,res,next):Promise<void>=>{
 
     const {fullname,username,email,password} = req.body;
 
@@ -58,12 +60,12 @@ const registerUser = asyncHandler(async(req:IRequest,res,next)=>{
         throw new ApiError(409,"User with email or password already exit.")
     }
     
-    const avatarlocalPath =  req.files?.avatar?.[0]?.path
-    const coverImagelocalPath =  req.files?.coverImage?.[0]?.path
+    const avatarlocalPath =  req.files?.avatar?.[0]?.path || ""
+    const coverImagelocalPath =  req.files?.coverImage?.[0]?.path || ""
 
    
 
-    let avatar; 
+    let avatar
     
     try {
 
@@ -139,7 +141,7 @@ const registerUser = asyncHandler(async(req:IRequest,res,next)=>{
 })
 
 
-const loginUser = asyncHandler(async(req,res)=>{
+const loginUser = asyncHandler(async(req,res):Promise<void>=>{
 
     const { username , email , password } = req.body;
     
@@ -197,10 +199,97 @@ const loginUser = asyncHandler(async(req,res)=>{
 
 })
 
+// Refresh the access token 
+const refreshAcessTOken = asyncHandler(async(req,res):Promise<void>=>{
+
+    
+    const incomingRefreshTOken = req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!incomingRefreshTOken) {
+
+    throw new ApiError(401,"Refresh token is required.");
+    }
+
+    try {
+        
+        const  decodedtoken = jwt.verify(
+            incomingRefreshTOken,
+            process.env.REFRESH_TOKEN_SECRET as string
+        ) as JwtPayload
+        
+        if (!decodedtoken || !decodedtoken._id) {
+            
+            throw new ApiError(401,"Invalid refresh token");
+        }
+        
+        
+        const user =  await User.findById(decodedtoken._id);
+        
+        if (!user) {
+            
+            throw new ApiError(401,"Invalid refresh token");
+        }
+        
+        if (incomingRefreshTOken !== user?.refreshToken ) {
+            
+            throw new ApiError(401,"Invalid refresh token");
+        }
+        
+        const options = {
+            httpOnly:true,
+            secure: process.env.NODE_ENV === "production",
+        }
+        
+        const {accessToken,refreshToken:newrefreshToken} = 
+        await generateAccessAndRefreshToken(user._id)
+       
+        res.status(200)
+        .cookie("accessToken",accessToken,options)
+        .cookie("refreshToken",newrefreshToken,options)
+        .json(
+            new ApiResponse(
+                200,
+                {accessToken,
+                    refreshTOken:newrefreshToken
+                },
+                "Access token refreshed successfully."
+            ));
+         
+
+        
+
+
+    } catch (error) {
+        
+
+    }
+
+
+
+
+
+
+
+
+
+  
+
+})
+
+const logoutUser = asyncHandler(async(req,res):Promise<void>=>{
+ 
+   await User.findByIdAndUpdate(
+    // for getting user id need to create a authenticated check middlewares.
+   )
+
+  
+
+})
 
 
 export {
     registerUser,
     loginUser,
-    
+    refreshAcessTOken,
+    logoutUser,
 }

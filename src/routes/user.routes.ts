@@ -1,6 +1,6 @@
 import { Router } from "express";
 const router = Router();
-import { loginUser, registerUser } from "../controllers/user.controller";
+import { loginUser, logoutUser, refreshAcessTOken, registerUser } from "../controllers/user.controller";
 import { upload } from "../middlewares/multer.middleware";
 
 
@@ -17,6 +17,8 @@ router.route("/register").post(upload.fields(
 ),registerUser);
 
 router.route('/login').post(loginUser)
+router.route('/temp').post(refreshAcessTOken)
+router.route('/logout').post(logoutUser)
 
 
 
