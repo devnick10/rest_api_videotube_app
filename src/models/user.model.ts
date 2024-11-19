@@ -1,15 +1,36 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Model, Schema } from "mongoose";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 
+interface IUser {
+  username: string;
+  email: string;
+  fullname: string;
+  avatar: string;
+  coverImage?: string;
+  watchHistory: mongoose.Types.ObjectId[];
+  password: string;
+  refreshToken?: string;
+}
 
-const userSchema =  new Schema({
+interface IUserMethods {
+  isPasswordCorrect(password: string): Promise<boolean>;
+  generateAccessToken(): string;
+  generateRefreshToken(): string;
+}
+
+type UserModel = Model<IUser, {}, IUserMethods>;
+                       
+
+
+const userSchema =  new Schema<IUser,UserModel,IUserMethods>({
 
     username:{
         type:String,
         required:true,
         lowercase:true,
         trim:true,
+        index:true,
     },
     email:{
         type:String,
@@ -58,34 +79,34 @@ userSchema.pre("save",async function(next: mongoose.CallbackWithoutResultAndOpti
 
 
 userSchema.methods.isPasswordCorrect = async function
-(password:string) {
+(password:string):Promise<boolean> {
   return await  bcrypt.compare(password,this.password)
 }
 
 
 // jwt token
-userSchema.methods.generateAccessToken = function(){
+userSchema.methods.generateAccessToken = function():string{
 
   return  jwt.sign(
         {
          id:this._id
         },
-        `${process.env.ACCESS_TOKEN_SECRET}`,{
-            expiresIn:`${process.env.ACCESS_TOKEN_EXPIRY}`
+        process.env.ACCESS_TOKEN_SECRET as string,{
+            expiresIn:process.env.ACCESS_TOKEN_EXPIRY as string
         }
     )
     
 }
 
 
-userSchema.methods.generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function():string{
 
   return  jwt.sign(
         {
          id:this._id
         },
-        `${process.env.REFRESH_TOKEN_SECRET}`,{
-            expiresIn:`${process.env.REFRESH_TOKEN_EXPIRY}`
+        process.env.REFRESH_TOKEN_SECRET as string,{
+            expiresIn:process.env.REFRESH_TOKEN_EXPIRY as string
         }
     )
     
@@ -94,4 +115,4 @@ userSchema.methods.generateRefreshToken = function(){
 
 
 
-export const User = mongoose.model("User",userSchema);
+export const User = mongoose.model<IUser,UserModel>("User",userSchema);
