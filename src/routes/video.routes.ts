@@ -1,38 +1,42 @@
-import { Router } from "express";
-import isAuthenticated from "../middlewares/auth.middleware";
-import { upload } from "../middlewares/multer.middleware";
+import { Router } from 'express';
 import {
     deleteVideo,
-     getAllVideos, 
-     getVideoById, 
-     publishAVideo,
-     togglePublishStatus,
-     updateVideo,
-    } from "../controllers/video.controller";
+    getAllVideos,
+    getVideoById,
+    publishAVideo,
+    togglePublishStatus,
+    updateVideo,
+} from "../controllers/video.controller"
+import {upload} from "../middlewares/multer.middleware"
+import isAuthenticated from '../middlewares/auth.middleware';
+
 const router = Router();
+router.use(isAuthenticated);
 
+router
+    .route("/")
+    .get(getAllVideos)
+    .post(
+        upload.fields([
+            {
+                name: "videoFile",
+                maxCount: 1,
+            },
+            {
+                name: "thumbnail",
+                maxCount: 1,
+            },
+            
+        ]),
+        publishAVideo
+    );
 
-router.route("/all").get(isAuthenticated,getAllVideos)
-router.route("/publish").post(isAuthenticated,upload.fields(
-    [
-        {
-            name:"video",
-            maxCount:1
-        },
-        {
-            name:"thumbnail",
-            maxCount:1
-        },
-    ]
-),publishAVideo);
+router
+    .route("/:videoId")
+    .get(getVideoById)
+    .delete(deleteVideo)
+    .patch(upload.single("thumbnail"), updateVideo);
 
-router.route("/:videoId")
-.get(isAuthenticated,getVideoById)
-.delete(isAuthenticated,deleteVideo)
-.patch(isAuthenticated,togglePublishStatus);
+router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 
-router.route("/update/:videoId").patch(isAuthenticated,upload.single("thumbnail"),updateVideo);
-
-
-
-export default router;
+export default router

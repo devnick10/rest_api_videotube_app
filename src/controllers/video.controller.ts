@@ -1,10 +1,9 @@
 import mongoose, {isValidObjectId} from "mongoose"
-import {Video} from "../models/video.model.js"
-import {User} from "../models/user.model.js"
-import {ApiError} from "../utils/ApiError.js"
-import {ApiResponse} from "../utils/ApiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
-import {cloudinaryUploader} from "../utils/cloudinary.js"
+import {Video} from "../models/video.model"
+import {ApiError} from "../utils/ApiError"
+import {ApiResponse} from "../utils/ApiResponse"
+import {asyncHandler} from "../utils/asyncHandler"
+import {cloudinaryUploader} from "../utils/cloudinary"
 import { IRequest } from './user.controller';
 
 
@@ -101,7 +100,7 @@ const publishAVideo = asyncHandler(async (req:IRequest, res) => {
       throw new ApiError(409,"Title and description required")
    }
 
-   const videolocalPath = req.files?.video?.[0]?.path || ""
+   const videolocalPath = req.files?.videoFile?.[0]?.path || ""
    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path || ""
    
    let video ;
@@ -218,6 +217,9 @@ const updateVideo = asyncHandler(async (req:IRequest, res) => {
        title,
        description,
        thumbnail:thumbnail?.url
+      },
+      {
+        new:true
       }
     )
     
