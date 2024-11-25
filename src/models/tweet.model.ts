@@ -1,14 +1,24 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema,Document } from "mongoose";
 
-const tweetSchema = new Schema({
+interface ITweet extends Document{
+ 
+    content:string
+    owner:mongoose.Types.ObjectId
+    createdAt: Date
+    updatedAt: Date
+  
+}
+
+const tweetSchema = new Schema<ITweet>({
     
     content:{
         type:String,
         required:true
     },
     owner:{
-        type:Schema.Types.ObjectId,
-        ref:"User"
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        required:true
     }
 
 
@@ -17,8 +27,4 @@ const tweetSchema = new Schema({
 
 
 
-
-
-
-
-export const Tweet = mongoose.model("Tweet",tweetSchema)
+export const Tweet = mongoose.model<ITweet>("Tweet",tweetSchema)

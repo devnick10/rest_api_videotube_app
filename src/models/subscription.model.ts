@@ -1,15 +1,26 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema ,Document } from "mongoose";
 
-const subcriptionSchema = new Schema(
+interface ISubscription extends Document{
+ 
+  subscriber:mongoose.Types.ObjectId
+  channel:mongoose.Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
+
+}
+
+const subcriptionSchema = new Schema<ISubscription>(
   {
     subscriber: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required:true
     },
 
     channel: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required:true
     },
   },
   {
@@ -17,4 +28,6 @@ const subcriptionSchema = new Schema(
   }
 );
 
-export const Subscription = mongoose.model("Subscription", subcriptionSchema);
+subcriptionSchema.index({subcriber:1,channel:1},{unique:true})
+
+export const Subscription = mongoose.model<ISubscription>("Subscription", subcriptionSchema);
