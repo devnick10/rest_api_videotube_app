@@ -2,12 +2,10 @@ import { ApiError } from '../utils/ApiError';
 import {ApiResponse} from '../utils/ApiResponse';
 import {asyncHandler} from "../utils/asyncHandler";
 import { User } from '../models/user.model';
-import {Request} from 'express';
 import { cloudinaryUploader, deleteFromCloudinary } from '../utils/cloudinary';
 import mongoose from 'mongoose';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { IAuthRequest } from '../middlewares/auth.middleware';
-import { subscribe } from 'diagnostics_channel';
 
 export interface IRequest extends IAuthRequest{
     files?:any
@@ -39,7 +37,7 @@ try {
 }
 
 
-const registerUser = asyncHandler(async(req:IRequest,res,next):Promise<void>=>{
+const registerUser = asyncHandler(async(req:IRequest,res)=>{
 
     const {fullname,username,email,password} = req.body;
 
@@ -120,7 +118,7 @@ const registerUser = asyncHandler(async(req:IRequest,res,next):Promise<void>=>{
         }
         
         
-        res.
+       return res.
         status(200)
         .json(new ApiResponse(200,createdUser,"User registered successfully"))
         
@@ -142,7 +140,7 @@ const registerUser = asyncHandler(async(req:IRequest,res,next):Promise<void>=>{
 })
 
 
-const loginUser = asyncHandler(async(req,res):Promise<void>=>{
+const loginUser = asyncHandler(async(req,res)=>{
 
     const { username , email , password } = req.body;
     
@@ -188,7 +186,7 @@ const loginUser = asyncHandler(async(req,res):Promise<void>=>{
     }
 
 
-    res.status(200)
+    return res.status(200)
     .cookie("accessToken",accessToken,options)
     .cookie("refreshToken",refreshToken,options)
     .json(new ApiResponse(
@@ -201,12 +199,12 @@ const loginUser = asyncHandler(async(req,res):Promise<void>=>{
 })
 
 // Refresh the access token 
-const refreshAcessTOken = asyncHandler(async(req,res):Promise<void>=>{
+const refreshAcessToken = asyncHandler(async(req,res)=>{
 
     
-    const incomingRefreshTOken = req.cookies.refreshToken || req.body.refreshToken;
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-    if (!incomingRefreshTOken) {
+    if (!incomingRefreshToken) {
 
     throw new ApiError(401,"Refresh token is required.");
     }
@@ -214,7 +212,7 @@ const refreshAcessTOken = asyncHandler(async(req,res):Promise<void>=>{
     try {
         
         const  decodedtoken = jwt.verify(
-            incomingRefreshTOken,
+            incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET as string
         ) as JwtPayload
         
@@ -231,7 +229,7 @@ const refreshAcessTOken = asyncHandler(async(req,res):Promise<void>=>{
             throw new ApiError(401,"Invalid refresh token");
         }
         
-        if (incomingRefreshTOken !== user?.refreshToken ) {
+        if (incomingRefreshToken !== user?.refreshToken ) {
             
             throw new ApiError(401,"Invalid refresh token");
         }
@@ -244,7 +242,7 @@ const refreshAcessTOken = asyncHandler(async(req,res):Promise<void>=>{
         const {accessToken,refreshToken:newrefreshToken} = 
         await generateAccessAndRefreshToken(user._id)
        
-        res.status(200)
+        return res.status(200)
         .cookie("accessToken",accessToken,options)
         .cookie("refreshToken",newrefreshToken,options)
         .json(
@@ -254,30 +252,19 @@ const refreshAcessTOken = asyncHandler(async(req,res):Promise<void>=>{
                     refreshTOken:newrefreshToken
                 },
                 "Access token refreshed successfully."
-            ));
+            )
+        );
          
-
-        
-
-
     } catch (error) {
-        
+       
+       throw new ApiError(500,`Something went wrong while refresh access token. ${error}`) 
 
     }
 
 
-
-
-
-
-
-
-
-  
-
 })
 
-const logoutUser = asyncHandler(async(req:IAuthRequest,res):Promise<void>=>{
+const logoutUser = asyncHandler(async(req:IAuthRequest,res)=>{
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user?._id ,
@@ -296,7 +283,7 @@ const logoutUser = asyncHandler(async(req:IAuthRequest,res):Promise<void>=>{
         secure:process.env.NODE_ENV === "production"
     }
 
-    res.status(200).clearCookie("accessToken",option)
+    return res.status(200).clearCookie("accessToken",option)
     .clearCookie("refreshTOken",option)
     .json(new ApiResponse(200,{},"Logout successfully"))
 
@@ -326,7 +313,10 @@ const changeCurrentPassword = asyncHandler(async(req:IAuthRequest,res)=>{
 
     await user?.save({validateBeforeSave:false})
     
-     res.status(200).json(new ApiResponse(200,{},"Password change successfully"))
+    return res.status(200).json(new ApiResponse(
+        200,
+        "Password change successfully"
+    ))
 
 })
 
@@ -334,7 +324,7 @@ const changeCurrentPassword = asyncHandler(async(req:IAuthRequest,res)=>{
 const getCurrentUser = asyncHandler(async(req:IAuthRequest,res)=>{
  
 
-     res.status(200).json(new ApiResponse(
+    return res.status(200).json(new ApiResponse(
         200,
         req.user
         ,"Current user details."
@@ -361,7 +351,11 @@ const updateAccountDetails = asyncHandler(async(req:IAuthRequest,res)=>{
         throw new ApiError(400,"Failed to update user details.")
     }
 
-    res.status(200).json(new ApiResponse(200,user,"Account details updated successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        user,
+        "Account details updated successfully."
+    ))
 
 })
 
@@ -396,7 +390,11 @@ const updateAvatar = asyncHandler(async(req:IRequest,res)=>{
         throw new ApiError(401,"Failed to update avatar.")
     }
 
-    res.status(200).json(new ApiResponse(200,user,"Update avatar successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        user,
+        "Update avatar successfully."
+    ))
 
 })
 
@@ -430,7 +428,11 @@ const updateCoverImage = asyncHandler(async(req:IRequest,res)=>{
         throw new ApiError(401,"Failed to update avatar.")
     }
 
-    res.status(200).json(new ApiResponse(200,user,"Update avatar successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        user,
+        "Update avatar successfully."
+    ))
     
 })
 
@@ -512,7 +514,11 @@ const getUserChannelProfile = asyncHandler(async(req:IRequest,res)=>{
     
     
     
-    res.status(200).json(new ApiResponse(200,channel[0],"Channel profile fetched successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        channel[0],
+        "Channel profile fetched successfully."
+    ))
     
 })
 
@@ -569,7 +575,7 @@ const getWatchHistory = asyncHandler(async(req:IRequest,res)=>{
     }
     
     
-    res.status(200).json(new ApiResponse(
+    return res.status(200).json(new ApiResponse(
         200,
         user[0]?.watchHistory,
         "Watch history fetched successfully."
@@ -586,7 +592,7 @@ const getWatchHistory = asyncHandler(async(req:IRequest,res)=>{
 export {
     registerUser,
     loginUser,
-    refreshAcessTOken,
+    refreshAcessToken,
     logoutUser,
     changeCurrentPassword,
     getCurrentUser,

@@ -24,7 +24,7 @@ const createTweet = asyncHandler(async (req:IRequest, res) => {
         throw new ApiError(200,"Something went wrong while create tweet.")
     }
 
-    res.status(200).json(new ApiResponse(
+    return res.status(200).json(new ApiResponse(
         200,
         tweet,
         "Tweet created successfully."
@@ -48,7 +48,7 @@ const getUserTweets = asyncHandler(async (req:IRequest, res) => {
         throw new ApiError(409,"Something went wrong while fetch tweets.")
     }
 
-    res.status(200).json(new ApiResponse(
+    return res.status(200).json(new ApiResponse(
         200,
         {tweets:userTweets},
         "Tweet fetched successfully."
@@ -81,7 +81,7 @@ const updateTweet = asyncHandler(async (req:IRequest, res) => {
     }
 
 
-    res.status(200).json(new ApiResponse(
+    return res.status(200).json(new ApiResponse(
         200,
         tweet,
         "Tweet updated sccussefully."
@@ -106,7 +106,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
     }
 
 
-    res.status(200).json(new ApiResponse(
+    return res.status(200).json(new ApiResponse(
         200,
         "Tweet deleted sccussefully."
     ))

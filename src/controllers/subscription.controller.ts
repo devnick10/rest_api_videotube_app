@@ -27,7 +27,7 @@ const toggleSubscription = asyncHandler(async (req:IRequest, res) => {
         // Unsubscribe
         await Subscription.deleteOne({ _id: existingSubscription._id });
 
-        res.status(200).json(
+        return res.status(200).json(
             new ApiResponse(200,{}, "Successfully unsubscribed.")
         );
     } else {
@@ -38,7 +38,7 @@ const toggleSubscription = asyncHandler(async (req:IRequest, res) => {
             channel: channelId,
         });
 
-        res.status(200).json(
+        return res.status(200).json(
             new ApiResponse(200, newSubscription, "Successfully subscribed.")
         );
     }
@@ -90,7 +90,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
       throw new ApiError(404, "No subscribers found for the specified channel.");
     }
   
-    res.status(200).json(
+    return res.status(200).json(
       new ApiResponse(
         200,
         subscribers,
@@ -143,7 +143,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     throw new ApiError(409,"Something went wrong while fetched channels");
   }
 
-  res.status(200).json(new ApiResponse(
+  return res.status(200).json(new ApiResponse(
     200,
     subscribedChannels,
     "Subscribed channels fetched successfully."

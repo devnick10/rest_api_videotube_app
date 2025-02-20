@@ -7,7 +7,7 @@ export interface IAuthRequest extends Request{
 
  user?:any
 
- }
+}
 
 const isAuthenticated = async (req:IAuthRequest,res:Response,next:NextFunction)=>{
     

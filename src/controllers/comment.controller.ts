@@ -6,6 +6,7 @@ import { Comment } from "../models/comments.model"
 import { IRequest } from "./user.controller"
 
 const getVideoComments = asyncHandler(async (req, res) => {
+
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
 
@@ -60,10 +61,11 @@ const getVideoComments = asyncHandler(async (req, res) => {
      hasPrevPage: pageNo > 1,
     };
 
-    res.status(200).json(
-
-        new ApiResponse(200, { comments, pagination }, "Comments fetched successfully.")
-    );    
+    res.status(200).json(new ApiResponse(
+      200,
+      { comments, pagination },
+      "Comments fetched successfully."
+    ));    
 
 })
 
@@ -88,7 +90,7 @@ const addComment = asyncHandler(async (req:IRequest, res) => {
     throw new ApiError(400,"Something went wrong while add comment.")
   }
    
-  res.status(201).json(new ApiResponse(
+  return res.status(201).json(new ApiResponse(
     201,
     comment,
     "Comment added successfully."
@@ -101,9 +103,8 @@ const updateComment = asyncHandler(async (req, res) => {
   const {commentId} = req.params;
   const {content} = req.body;
   
-  const check =  isValidObjectId(commentId)
   
-  if (!check) {
+  if (!isValidObjectId(commentId)) {
     
     throw new ApiError(400,"Valid comment ID.")
   }
@@ -125,7 +126,7 @@ const updateComment = asyncHandler(async (req, res) => {
     throw new ApiError(404,"Something went wrong while update comment.")
   }
 
-  res.status(200).json(new ApiResponse(
+  return res.status(200).json(new ApiResponse(
     200,
     comment,
     "Comment updated successfully."
@@ -137,9 +138,8 @@ const deleteComment = asyncHandler(async (req, res) => {
 
   const {commentId} = req.params;
 
-  const check =  isValidObjectId(commentId)
   
-  if (!check) {
+  if (!isValidObjectId(commentId)) {
       
       throw new ApiError(400,"Valid comment ID.")
   }
@@ -152,7 +152,7 @@ const deleteComment = asyncHandler(async (req, res) => {
       throw new ApiError(404,"Something went wrong while deleting comment.")
   }
 
-  res.status(200).json(new ApiResponse(
+  return res.status(200).json(new ApiResponse(
     200,
     "Comment deleted successfully."
   ))

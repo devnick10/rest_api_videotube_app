@@ -7,7 +7,7 @@ import {
     getWatchHistory,
     loginUser,
     logoutUser, 
-    refreshAcessTOken, 
+    refreshAcessToken, 
     registerUser, 
     updateAccountDetails,
     updateAvatar,
@@ -31,7 +31,7 @@ router.route("/register").post(upload.fields(
 ),registerUser);
 
 router.route('/login').post(loginUser);
-router.route('/refresh-token').post(refreshAcessTOken);
+router.route('/refresh-token').post(refreshAcessToken);
 
 // protected route
 

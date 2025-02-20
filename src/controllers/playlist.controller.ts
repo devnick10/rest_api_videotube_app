@@ -26,7 +26,10 @@ const createPlaylist = asyncHandler(async (req:IRequest, res) => {
         throw new ApiError(401,"Something went wrong while creating playlist.")
     }
 
-    res.status(200).json(new ApiResponse(200,"Playlist created successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        "Playlist created successfully."
+    ))
 
 })
 
@@ -69,7 +72,10 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     ])
 
     
-    res.status(200).json(new ApiResponse(200,{playlists:getUserPlaylists},"Playlists fetched successfully."))
+    return res.status(200).json(new ApiResponse(200,
+        {playlists:userPlaylist},
+        "Playlists fetched successfully."
+    ))
 
 
 
@@ -90,12 +96,16 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         throw new ApiError(401,"Something went wrong while fetch playlist.")
     }
 
-    res.status(200).json(new ApiResponse(200,playlist,"Playlist fetched successfully."))
+    return res.status(200).json(new ApiResponse(200,
+        playlist,
+        "Playlist fetched successfully."
+    ))
 
 
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
+
     const {playlistId, videoId} = req.params;
     
     if (!playlistId || !videoId) {
@@ -104,18 +114,22 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     }
 
 
-    const addvideoToPlaylist = await Playlist.findByIdAndUpdate(playlistId,
+    const addedvideo = await Playlist.findByIdAndUpdate(playlistId,
         {
             $addToSet:{videos:videoId}
         },{new:true}
     )
 
-    if (!addVideoToPlaylist) {
+    if (!addedvideo) {
         
         throw new ApiError(401,"Something went wrong while adding video.")
     }
 
-    res.status(200).json(new ApiResponse(200,{playlist:addVideoToPlaylist},"Video added successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        {playlist:addedvideo},
+        "Video added successfully."
+    ))
 
 
 
@@ -145,7 +159,11 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(409,"Something went wrong while remove video.")
     }
     
-    res.status(200).json(new ApiResponse(200,updatedPlaylist,"Video removed Successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        updatedPlaylist,
+        "Video removed Successfully."
+    ))
 
 
 })
@@ -168,12 +186,15 @@ const deletePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(401,"Something went wrong while deleting playlist.")
     }
 
-    res.status(200).json(new ApiResponse(200,"Playlist deleted successfully."))
+    return res.status(200).json(new ApiResponse(200,
+        "Playlist deleted successfully."
+    ))
     
 
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
+
     const {playlistId} = req.params
     const {name, description} = req.body
    
@@ -195,7 +216,11 @@ const updatePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(409,"Something went wrong while update playlist.")
     }
 
-    res.status(200).json(new ApiResponse(200,updatedPlaylist,"Playlist updated successfully."))
+    return res.status(200).json(new ApiResponse(
+        200,
+        updatedPlaylist,
+        "Playlist updated successfully."
+    ))
 
 })
 

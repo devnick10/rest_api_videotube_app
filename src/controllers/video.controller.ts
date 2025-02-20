@@ -84,7 +84,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
       throw new ApiError(404,"No videos found matching the query.")
     }
 
-    res.status(200).json( new ApiResponse(
+   return res.status(200).json( new ApiResponse(
       200,
       {videos,pagination},
       "Videos fetched successfully."
@@ -95,7 +95,7 @@ const publishAVideo = asyncHandler(async (req:IRequest, res) => {
     const { title, description} = req.body
     
   
-   if (!title && !description) {
+   if (!title || !description) {
     
       throw new ApiError(409,"Title and description required")
    }
@@ -139,7 +139,7 @@ const publishAVideo = asyncHandler(async (req:IRequest, res) => {
       throw new ApiError(401,"Something went wrong while published video")
      }
 
-     res.status(200).json(new ApiResponse(
+     return res.status(200).json(new ApiResponse(
       200,
       publishAVideo,
       "Video published successfully."
@@ -170,12 +170,12 @@ const getVideoById = asyncHandler(async (req, res) => {
   
   const video = await Video.findById(videoId)
   
-  if(!videoId){
+  if(!video){
 
     throw new ApiError(409,"Video not found.")
   }
 
-  res.status(200).json(new ApiResponse(200,video,"Video fetched successfully."))
+ return res.status(200).json(new ApiResponse(200,video,"Video fetched successfully."))
 
 
 })
@@ -188,7 +188,7 @@ const updateVideo = asyncHandler(async (req:IRequest, res) => {
     const { title, description} = req.body
     
   
-    if (!title && !description) {
+    if (!title || !description) {
     
       throw new ApiError(409,"Title and description required")
     }
@@ -223,12 +223,12 @@ const updateVideo = asyncHandler(async (req:IRequest, res) => {
       }
     )
     
-    if(video){
+    if(!video){
   
       throw new ApiError(409,"Video not found.")
     }
 
-    res.status(200).json(new ApiResponse(200,video,"Video Updated Successfully"))
+   return res.status(200).json(new ApiResponse(200,video,"Video Updated Successfully"))
 
 })
 
@@ -243,7 +243,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
       throw new ApiError(200,"Something went wrong while deleting video.")
     }
     
-    res.status(200).json(new ApiResponse(200,"Video delete successfully."))
+   return res.status(200).json(new ApiResponse(200,"Video delete successfully."))
 
 })
 
@@ -253,11 +253,15 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId)
     
+    if (!video) {
+      throw new ApiError(500,"Something went wrong while toggle published");
+    }
+
     video.isPublished = !video.isPublished
     
     await video.save()
     
-    res.status(200).json(new ApiResponse(200,video,"Toggle published successfully."))
+   return res.status(200).json(new ApiResponse(200,video,"Toggle published successfully."))
    
 
 })

@@ -45,7 +45,11 @@ const getChannelStats = asyncHandler(async (req:IRequest, res) => {
         totalSubscribers: subscribersCount,
     };
     
-    res.status(200).json(new ApiResponse(200, channelStats, "Channel stats fetched successfully."));
+    return res.status(200).json(new ApiResponse(
+        200,
+        channelStats,
+        "Channel stats fetched successfully."
+    ));
 
 })
 
@@ -92,7 +96,11 @@ const getChannelVideos = asyncHandler(async (req:IRequest, res) => {
         totalPages: Math.ceil(totalVideos / pageLimit),
     };
     
-    res.status(200).json(new ApiResponse(200, response, "Channel videos fetched successfully."));
+    return res.status(200).json(new ApiResponse(
+        200,
+        response,
+        "Channel videos fetched successfully."
+    ));
 
       
 })
