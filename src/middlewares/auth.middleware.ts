@@ -19,15 +19,14 @@ const isAuthenticated = async (
   if (!token) {
     throw new ApiError(401, "Unauthorized");
   }
+
   try {
     const decodeToken = jwt.verify(
       token,
       process.env.ACCESS_TOKEN_SECRET as string
     ) as JwtPayload;
-
-    const user = await User.findById(decodeToken?._id).select(
-      "-password -refreshToken"
-    );
+    
+    const user = await User.findById(decodeToken?.id)
 
     if (!user) {
       throw new ApiError(401, "Unauthorized");
@@ -38,7 +37,7 @@ const isAuthenticated = async (
     next();
   } catch (error) {
     const err = error as Error;
-    throw new ApiError(401, err?.message || "Unauthorized");
+    next(new ApiError(401, err.message || "Unauthorized"));
   }
 };
 

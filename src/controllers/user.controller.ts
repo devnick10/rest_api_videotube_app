@@ -15,8 +15,7 @@ const generateAccessAndRefreshToken = async (
   userid: mongoose.Types.ObjectId
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
-    const user = await User.findById(userid);
-
+    const user = await User.findById(userid).select("+refreshToken");
     if (!user)
       throw new ApiError(
         409,
@@ -174,23 +173,23 @@ const loginUser = asyncHandler(async (req, res) => {
 // Refresh the access token
 const refreshAcessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
-
+  req.cookies.refreshToken || req.body.refreshToken;
+  
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is required.");
   }
-
+  
   try {
     const decodedtoken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET as string
     ) as JwtPayload;
-
-    if (!decodedtoken || !decodedtoken._id) {
+    
+    if (!decodedtoken || !decodedtoken.id) {
       throw new ApiError(401, "Invalid refresh token");
     }
-
-    const user = await User.findById(decodedtoken._id);
+    
+    const user = await User.findById(decodedtoken.id).select("+refreshToken");
 
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
@@ -204,7 +203,6 @@ const refreshAcessToken = asyncHandler(async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     };
-
     const { accessToken, refreshToken: newrefreshToken } =
       await generateAccessAndRefreshToken(user._id);
 
@@ -255,7 +253,7 @@ const logoutUser = asyncHandler(async (req: IAuthRequest, res) => {
 const changeCurrentPassword = asyncHandler(async (req: IAuthRequest, res) => {
   const { oldPassword, newPassword } = req.body;
 
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select("+password");
 
   if (!user) {
     throw new ApiError(401, "User not found.");
@@ -283,19 +281,20 @@ const getCurrentUser = asyncHandler(async (req: IAuthRequest, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req: IAuthRequest, res) => {
-  const { fullname, email } = req.body;
+  const { fullname, email,username } = req.body;
 
   if (!fullname || !email) {
     throw new ApiError(400, "Fullname and email are required.");
   }
-
+  const updatePayload = {fullname,email,username}
+  
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: { fullname, email },
+      $set: {...updatePayload},
     },
     { new: true }
-  ).select("-password -refreshToken");
+  )
 
   if (!user) {
     throw new ApiError(400, "Failed to update user details.");

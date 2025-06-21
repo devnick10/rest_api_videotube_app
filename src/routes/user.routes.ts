@@ -36,7 +36,7 @@ router.route("/refresh-token").post(refreshAcessToken);
 // protected route
 
 router.route("/logout").get(isAuthenticated, logoutUser);
-router.route("/change-password").get(isAuthenticated, changeCurrentPassword);
+router.route("/change-password").post(isAuthenticated, changeCurrentPassword);
 router.route("/current-user").get(isAuthenticated, getCurrentUser);
 
 router.route("/c/:username").post(isAuthenticated, getUserChannelProfile);

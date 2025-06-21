@@ -1,75 +1,36 @@
-// import mongoose from "mongoose";
-// import { ApiError } from "../utils/ApiError";
-// import { ErrorRequestHandler, Request, Response, NextFunction } from "express";
-
-// const errorHandler: ErrorRequestHandler = (
-//   err: ApiError | Error,
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   let error = err;
-
-//   if ((error instanceof ApiError)) {
-
-//    const statusCode = error.statusCode || error instanceof mongoose.Error ? 400 : 500
-
-//    const message = error.message || "Something went wrong."
-
-//    error = new ApiError(statusCode,message,error?.errors || [] ,err.stack)
-
-//   }
-
-//   const response = {
-//     ...error,
-//     message:error.message,
-//     ...(process.env.NODE_ENV === "development" ?{stack:error.stack}:{})
-//   }
-
-//   return res.status(apierror.statusCode).json(response)
-
-// };
-
-// export default errorHandler;
-
-import { Request, Response, NextFunction, ErrorRequestHandler } from "express";
-import mongoose from "mongoose";
+import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/ApiError";
 
 const errorHandler: ErrorRequestHandler = (
-  err: ApiError | Error,
+  err: ApiError,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  let error: ApiError;
+  err.statusCode = err.statusCode || 500;
 
-  // Ensure the error is an instance of ApiError
-  if (err instanceof ApiError) {
-    error = err;
+  if (process.env.NODE_ENV === "development") {
+    // Development error response
+    res.status(err.statusCode).json({
+      error: err,
+      message: err.message,
+      stack: err.stack,
+    });
   } else {
-    const statusCode = err instanceof mongoose.Error ? 400 : 500;
-    const message = err.message || "Something went wrong.";
-
-    error = new ApiError(statusCode, message);
-    error.stack = err.stack || ""; // Add the stack trace if available
-    error.errors = []; // Ensure the errors array is set
+    // Production error response
+    if (err.isOperational) {
+      res.status(err.statusCode).json({
+        message: err.message,
+        error: err,
+      });
+    } else {
+      // Programming or other unknown error: don't leak error details
+      console.error("ERROR 💥", err);
+      res.status(500).json({
+        message: "Something went wrong!",
+      });
+    }
   }
-
-  // Default status code if none is provided
-  const statusCode = error.statusCode || 500;
-
-  // Build the response object
-  const response = {
-    success: false,
-    statusCode: error.statusCode,
-    message: error.message,
-    errors: error.errors, // Include the errors array
-    ...(process.env.NODE_ENV === "development" ? { stack: error.stack } : {}),
-  };
-
-  // Send the response
-  return res.status(statusCode).json(response);
 };
 
 export default errorHandler;
