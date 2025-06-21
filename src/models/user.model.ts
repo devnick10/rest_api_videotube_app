@@ -44,7 +44,6 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     },
     avatar: {
       type: String, // cloudinary url
-      required: true,
     },
     coverImage: {
       type: String,
@@ -58,8 +57,10 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     password: {
       type: String,
       required: [true, "password is required"],
+      select:false
     },
     refreshToken: {
+      select:false,
       type: String,
     },
   },

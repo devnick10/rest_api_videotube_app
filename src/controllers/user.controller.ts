@@ -41,9 +41,6 @@ const generateAccessAndRefreshToken = async (
 const registerUser = asyncHandler(async (req: IRequest, res) => {
   const { fullname, username, email, password } = req.body;
 
-  // validation
-  // allow user to register without avatar and coverImage
-
   if (
     [fullname, username, email, password].some((field) => field?.trim() === "")
   ) {
@@ -62,25 +59,25 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   let avatar;
-
-  try {
-    avatar = await cloudinaryUploader(avatarlocalPath);
-
-    console.log("Uploaded avatar", avatar);
-  } catch (error) {
-    console.log("Error uploading avatar.", error);
-    throw new ApiError(500, "Failed to Upload avatar.");
-  }
-
   let coverImage;
+  if (avatarlocalPath) {
+    try {
+      avatar = await cloudinaryUploader(avatarlocalPath);
 
-  try {
-    coverImage = await cloudinaryUploader(coverImagelocalPath);
+      console.log("Uploaded avatar", avatar);
+    } catch (error) {
+      console.log("Error uploading avatar.", error);
+      throw new ApiError(500, "Failed to Upload avatar.");
+    }
+  } else if (coverImagelocalPath) {
+    try {
+      coverImage = await cloudinaryUploader(coverImagelocalPath);
 
-    console.log("Uploaded coverImage", coverImage);
-  } catch (error) {
-    console.log("Error uploading coverImage.", error);
-    throw new ApiError(500, "Failed to Upload coverImage.");
+      console.log("Uploaded coverImage", coverImage);
+    } catch (error) {
+      console.error("Error uploading coverImage.", error);
+      throw new ApiError(500, "Failed to Upload coverImage.");
+    }
   }
 
   try {
@@ -88,8 +85,8 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
       fullname,
       username: username.toLowerCase(),
       email,
-      coverImage: coverImage?.url,
-      avatar: avatar?.url,
+      coverImage: coverImage?.url || "",
+      avatar: avatar?.url || "" ,
       password,
     });
 
@@ -105,7 +102,7 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
       .status(200)
       .json(new ApiResponse(200, createdUser, "User registered successfully"));
   } catch (error) {
-    console.log("User registraion failed.", error);
+    console.error("User registraion failed.", error);
 
     if (avatar) {
       await deleteFromCloudinary(avatar.public_id);
@@ -130,13 +127,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const exitedUser = await User.findOne({
     $or: [{ email }, { username }],
-  });
+  }).select('+password');
 
   if (!exitedUser) {
     throw new ApiError(400, "Invalid credentials.");
   }
 
-  // avalidate password
+  // validate password
 
   const validUser = await exitedUser.isPasswordCorrect(password);
 
@@ -150,9 +147,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // query once for getting fresh userObject .
 
-  const loggedUser = await User.findById(exitedUser._id).select(
-    "-password,-refreshToken"
-  );
+  const loggedUser = await User.findById(exitedUser._id)
 
   if (!loggedUser) {
     throw new ApiError(502, "User not found .");
@@ -170,7 +165,7 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { user: loggedUser, accessToken, refreshToken },
+        { user: loggedUser},
         "User Logged in successfully."
       )
     );
