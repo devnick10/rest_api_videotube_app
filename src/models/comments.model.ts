@@ -3,7 +3,7 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IComment extends Document {
   content: string;
-  video: mongoose.Types.ObjectId; 
+  video: mongoose.Types.ObjectId;
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -18,7 +18,7 @@ const commentSchema = new Schema<IComment>(
     video: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Video",
-      required: true, 
+      required: true,
     },
     owner: {
       type: mongoose.Schema.Types.ObjectId,

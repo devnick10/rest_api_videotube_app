@@ -1,43 +1,45 @@
 import { NextFunction, Request, Response } from "express";
-import { User } from '../models/user.model';
+import { User } from "../models/user.model";
 import { ApiError } from "../utils/ApiError";
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt, { JwtPayload } from "jsonwebtoken";
 
-export interface IAuthRequest extends Request{
-
- user?:any
-
+export interface IAuthRequest extends Request {
+  user?: any;
 }
 
-const isAuthenticated = async (req:IAuthRequest,res:Response,next:NextFunction)=>{
-    
-    const token = req.cookies.accessToken || req.header("Authorization")?.replace("Bearer ","")
-    
-    if (!token) {
-        
-        throw new ApiError(401,"Unauthorized")
+const isAuthenticated = async (
+  req: IAuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const token =
+    req.cookies.accessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+
+  if (!token) {
+    throw new ApiError(401, "Unauthorized");
+  }
+  try {
+    const decodeToken = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET as string
+    ) as JwtPayload;
+
+    const user = await User.findById(decodeToken?._id).select(
+      "-password -refreshToken"
+    );
+
+    if (!user) {
+      throw new ApiError(401, "Unauthorized");
     }
-    try {
-        
-        const decodeToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET as string)as JwtPayload
-        
-        const user = await User.findById(decodeToken?._id).select("-password -refreshToken")
-        
-        if (!user) {
-            
-            throw new ApiError(401,"Unauthorized")
-        }
 
-        req.user = user;
+    req.user = user;
 
-        next()
+    next();
+  } catch (error) {
+    const err = error as Error;
+    throw new ApiError(401, err?.message || "Unauthorized");
+  }
+};
 
-     } catch (error ) {
-
-        let err = error as Error
-        throw new ApiError(401,err?.message || "Unauthorized")
-    
-    }
-}
-
-export default isAuthenticated; 
+export default isAuthenticated;

@@ -1,9 +1,8 @@
 import express from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser"
-import status from "express-status-monitor"
+import cookieParser from "cookie-parser";
+import status from "express-status-monitor";
 const app = express();
-
 
 // cors
 app.use(
@@ -13,8 +12,7 @@ app.use(
   })
 );
 
-
-// express middlewares 
+// express middlewares
 app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
@@ -23,7 +21,6 @@ app.use(express.static("public"));
 app.use(status());
 
 app.use(cookieParser());
-
 
 // imports routes
 import errorHandler from "./middlewares/error.middlewares";
@@ -37,22 +34,16 @@ import likeRouter from "./routes/like.routes";
 import commentRouter from "./routes/comment.routes";
 import dashboardRouter from "./routes/dashboard.routes";
 
-
-
-
-
 // routes
-app.use('/api/v1/healthcheck',healthcheckRouter);
-app.use('/api/v1/users',userRouter);
-app.use('/api/v1/video',videoRouter);
-app.use('/api/v1/tweet',tweetRouter);
-app.use('/api/v1/subscription',subscriptionRouter);
-app.use('/api/v1/playlist',playlistRouter);
-app.use('/api/v1/like',likeRouter);
-app.use('/api/v1/comment',commentRouter);
-app.use('/api/v1/dashboard',dashboardRouter);
-
-
+app.use("/api/v1/healthcheck", healthcheckRouter);
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/video", videoRouter);
+app.use("/api/v1/tweet", tweetRouter);
+app.use("/api/v1/subscription", subscriptionRouter);
+app.use("/api/v1/playlist", playlistRouter);
+app.use("/api/v1/like", likeRouter);
+app.use("/api/v1/comment", commentRouter);
+app.use("/api/v1/dashboard", dashboardRouter);
 
 // error
 

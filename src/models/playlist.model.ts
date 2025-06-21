@@ -1,15 +1,12 @@
 import mongoose, { Document, Schema } from "mongoose";
 
-
-interface IPlaylist extends Document{
- 
-  name:string
-  description:string
-  videos?:mongoose.Types.ObjectId[]
-  owner:mongoose.Types.ObjectId
-  createdAt: Date
-  updatedAt: Date
-
+interface IPlaylist extends Document {
+  name: string;
+  description: string;
+  videos?: mongoose.Types.ObjectId[];
+  owner: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const playlistSchema = new Schema<IPlaylist>(
@@ -17,13 +14,13 @@ const playlistSchema = new Schema<IPlaylist>(
     name: {
       type: String,
       required: true,
-      minlength:3,
-      maxlength:50
+      minlength: 3,
+      maxlength: 50,
     },
     description: {
       type: String,
       required: true,
-      maxlength:500,
+      maxlength: 500,
     },
     videos: [
       {
@@ -34,7 +31,7 @@ const playlistSchema = new Schema<IPlaylist>(
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required:true
+      required: true,
     },
   },
   { timestamps: true }
