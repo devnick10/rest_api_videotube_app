@@ -2,7 +2,14 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import status from "express-status-monitor";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import hpp from "hpp";
+import mongoSanitize from "express-mongo-sanitize"
+import morgan from "morgan";
 const app = express();
+
+
 
 // cors
 app.use(
@@ -12,15 +19,33 @@ app.use(
   })
 );
 
+
+// Global rate limiting 
+const limitter = rateLimit({
+  windowMs:15*60*1000, // 15 minute
+  max:100,             // limit each ip to 100 req per windowMS
+  message:"To many requests from this IP, please try again later."
+}) 
+
+// Security middleware 
+app.use(helmet());
+app.use(hpp());  // Prevent http parameters pollution
+app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
+app.use('/api',limitter); // Apply rate limiting to all routes
+
 // express middlewares
 app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
+app.use(cookieParser());
 
 // monitor server
 app.use(status());
 
-app.use(cookieParser());
+// logging middleware
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
 // imports routes
 import errorHandler from "./middlewares/error.middlewares";
