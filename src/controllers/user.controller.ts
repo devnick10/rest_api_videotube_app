@@ -6,6 +6,7 @@ import { cloudinaryUploader, deleteFromCloudinary } from "../utils/cloudinary";
 import mongoose from "mongoose";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { IAuthRequest } from "../middlewares/auth.middleware";
+import logger from "../utils/logger";
 
 export interface IRequest extends IAuthRequest {
   files?: any;
@@ -30,6 +31,10 @@ const generateAccessAndRefreshToken = async (
 
     return { accessToken, refreshToken };
   } catch (error) {
+    logger.debug("Error while generating access and refresh token.", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     throw new ApiError(
       407,
       "Something went wrong while generating access and refresh token"
@@ -65,7 +70,11 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
 
       console.log("Uploaded avatar", avatar);
     } catch (error) {
-      console.log("Error uploading avatar.", error);
+      logger.debug("Error uploading avatar.", {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
+
       throw new ApiError(500, "Failed to Upload avatar.");
     }
   } else if (coverImagelocalPath) {
@@ -74,7 +83,10 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
 
       console.log("Uploaded coverImage", coverImage);
     } catch (error) {
-      console.error("Error uploading coverImage.", error);
+      logger.debug("Error uploading coverImage.", {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
       throw new ApiError(500, "Failed to Upload coverImage.");
     }
   }
@@ -101,7 +113,10 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
       .status(200)
       .json(new ApiResponse(200, createdUser, "User registered successfully"));
   } catch (error) {
-    console.error("User registraion failed.", error);
+    logger.debug("User registraion failed.", {
+      message: (error as Error).message,
+      stack: (error as Error).message,
+    });
 
     if (avatar) {
       await deleteFromCloudinary(avatar.public_id);
@@ -214,6 +229,10 @@ const refreshAcessToken = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
+    logger.debug("Failed to refresh access token ", {
+      message: (error as Error).message,
+      stack: (error as Error).message,
+    });
     throw new ApiError(
       500,
       `Something went wrong while refresh access token. ${error}`
@@ -313,6 +332,10 @@ const updateAvatar = asyncHandler(async (req: IRequest, res) => {
   try {
     avatar = cloudinaryUploader(avatarLocalPath);
   } catch (error) {
+    logger.debug("Failed uploading avatar", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     throw new ApiError(401, "Failed to update avatar.");
   }
 
@@ -344,6 +367,10 @@ const updateCoverImage = asyncHandler(async (req: IRequest, res) => {
   try {
     coverImage = await cloudinaryUploader(coverImagelocalPath);
   } catch (error) {
+    logger.debug("failed to upload coverImage", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     throw new ApiError(401, "Failed to update avatar.");
   }
 

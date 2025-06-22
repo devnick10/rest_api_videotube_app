@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs/promises";
+import logger from "./logger";
 
 const cloudinaryUploader = async (localFilePath: string) => {
   // Configuration
@@ -28,8 +29,10 @@ const cloudinaryUploader = async (localFilePath: string) => {
 
     return uploadResult;
   } catch (error) {
-    console.log("File uploading failed.", error);
-
+    logger.debug("File uploading failed.", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     fs.unlink(localFilePath); // remove the locally saved temp file.
     return null;
   }
@@ -37,11 +40,14 @@ const cloudinaryUploader = async (localFilePath: string) => {
 
 const deleteFromCloudinary = async (publicId: string) => {
   try {
-    const result = await cloudinary.uploader.destroy(publicId);
+    await cloudinary.uploader.destroy(publicId);
 
-    console.log("Deleted from cloudinary. Public id", result);
+    logger.debug("Deleted from cloudinary.");
   } catch (error) {
-    console.log("Error deleting from cloudinary.", error);
+    logger.debug("Error deleting from cloudinary.", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     return null;
   }
 };

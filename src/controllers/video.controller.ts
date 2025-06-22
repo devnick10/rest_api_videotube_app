@@ -1,9 +1,10 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose from "mongoose";
 import { Video } from "../models/video.model";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import { cloudinaryUploader } from "../utils/cloudinary";
+import logger from "../utils/logger";
 import { IRequest } from "./user.controller";
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -102,6 +103,10 @@ const publishAVideo = asyncHandler(async (req: IRequest, res) => {
   try {
     video = await cloudinaryUploader(videolocalPath);
   } catch (error) {
+    logger.debug("Something went wrong while uploading video", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     throw new ApiError(409, "Something went wrong while published video");
   }
 
@@ -109,6 +114,10 @@ const publishAVideo = asyncHandler(async (req: IRequest, res) => {
   try {
     thumbnail = await cloudinaryUploader(thumbnailLocalPath);
   } catch (error) {
+    logger.debug("Something went wrong while uploading thumbnail", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     throw new ApiError(409, "Something went wrong while published video");
   }
 
@@ -131,6 +140,10 @@ const publishAVideo = asyncHandler(async (req: IRequest, res) => {
         new ApiResponse(200, publishAVideo, "Video published successfully.")
       );
   } catch (error) {
+    logger.debug("Something went wrong while published video", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     console.error(error);
     throw new ApiError(401, "Something went wrong while published video");
   }
@@ -169,6 +182,10 @@ const updateVideo = asyncHandler(async (req: IRequest, res) => {
   try {
     thumbnail = await cloudinaryUploader(thumbnailLocalPath);
   } catch (error) {
+    logger.debug("Error while uploading thubnail", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     throw new ApiError(409, "Something went wrong while published video");
   }
 
@@ -230,10 +247,10 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 });
 
 export {
-  getAllVideos,
-  publishAVideo,
-  getVideoById,
-  updateVideo,
   deleteVideo,
+  getAllVideos,
+  getVideoById,
+  publishAVideo,
   togglePublishStatus,
+  updateVideo,
 };

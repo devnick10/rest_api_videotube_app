@@ -5,11 +5,9 @@ import status from "express-status-monitor";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import hpp from "hpp";
-import mongoSanitize from "express-mongo-sanitize"
+import mongoSanitize from "express-mongo-sanitize";
 import morgan from "morgan";
 const app = express();
-
-
 
 // cors
 app.use(
@@ -19,19 +17,18 @@ app.use(
   })
 );
 
-
-// Global rate limiting 
+// Global rate limiting
 const limitter = rateLimit({
-  windowMs:15*60*1000, // 15 minute
-  max:100,             // limit each ip to 100 req per windowMS
-  message:"To many requests from this IP, please try again later."
-}) 
+  windowMs: 15 * 60 * 1000, // 15 minute
+  max: 100, // limit each ip to 100 req per windowMS
+  message: "To many requests from this IP, please try again later.",
+});
 
-// Security middleware 
+// Security middleware
 app.use(helmet());
-app.use(hpp());  // Prevent http parameters pollution
+app.use(hpp()); // Prevent http parameters pollution
 app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
-app.use('/api',limitter); // Apply rate limiting to all routes
+app.use("/api", limitter); // Apply rate limiting to all routes
 
 // express middlewares
 app.use(express.json({ limit: "20kb" }));

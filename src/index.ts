@@ -4,14 +4,16 @@ dotenv.config({
 });
 import { app } from "./app";
 import connectDB from "./db";
+import logger from "./utils/logger";
 
 // connect database
 connectDB()
   .then(() => {
     app.listen(process.env.PORT || 3000, () => {
-      console.log(`server is running at PORT || ${process.env.PORT}`);
+      logger.info(`server is running at PORT || ${process.env.PORT}`);
     });
   })
   .catch((err) => {
-    console.log(`MongoDB connetion error`, err);
+    logger.error(`MongoDB connetion error`);
+    console.error(err);
   });
