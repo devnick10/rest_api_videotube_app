@@ -23,7 +23,7 @@ const getChannelStats = asyncHandler(async (req: IRequest, res) => {
       $group: {
         _id: "$owner",
         totalVideos: { $sum: 1 },
-        totalViews: { $sum: "$views" }, // Assuming the Video schema has a `views` field
+        totalViews: { $sum: "$views" },
         totalLikes: { $sum: { $size: "$likes" } },
       },
     },

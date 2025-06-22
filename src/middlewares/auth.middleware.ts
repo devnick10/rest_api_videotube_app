@@ -25,8 +25,8 @@ const isAuthenticated = async (
       token,
       process.env.ACCESS_TOKEN_SECRET as string
     ) as JwtPayload;
-    
-    const user = await User.findById(decodeToken?.id)
+
+    const user = await User.findById(decodeToken?.id);
 
     if (!user) {
       return next(new ApiError(401, "Unauthorized"));

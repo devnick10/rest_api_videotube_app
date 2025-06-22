@@ -57,10 +57,10 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     password: {
       type: String,
       required: [true, "password is required"],
-      select:false
+      select: false,
     },
     refreshToken: {
-      select:false,
+      select: false,
       type: String,
     },
   },
@@ -69,16 +69,13 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
 
 // mongodb methods / middlwares / hooks
 
-userSchema.pre(
-  "save",
-  async function (next) {
-    if (!this.isModified("password")) return next();
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
 
-    this.password = await bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, 10);
 
-    next();
-  }
-);
+  next();
+});
 
 userSchema.methods.isPasswordCorrect = async function (
   password: string

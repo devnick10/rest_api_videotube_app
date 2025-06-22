@@ -43,7 +43,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     {
       $addFields: {
         owner: {
-          $first: "owner",
+          $first: "$owner",
         },
       },
     },
@@ -61,6 +61,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
     },
   ]);
 
+  if (!videos || videos.length === 0) {
+    throw new ApiError(404, "No videos found matching the query.");
+  }
+
   const totalVidoes = videos[0].totalVideos;
   const totalPages = Math.ceil(totalVidoes / pageLimit);
 
@@ -71,10 +75,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     nextPage: pageNo < totalPages,
     prevPage: pageNo > 1,
   };
-
-  if (!videos || videos.length === 0) {
-    throw new ApiError(404, "No videos found matching the query.");
-  }
 
   return res
     .status(200)
@@ -115,13 +115,12 @@ const publishAVideo = asyncHandler(async (req: IRequest, res) => {
   try {
     const publishedVideo = await Video.create({
       videoFile: video?.url,
-      thumbnail,
+      thumbnail: thumbnail?.url,
       title,
       description,
-      durantion: video?.duration,
+      duration: video?.duration,
       owner: req.user._id,
     });
-
     if (!publishedVideo) {
       throw new ApiError(401, "Something went wrong while published video");
     }
@@ -132,6 +131,7 @@ const publishAVideo = asyncHandler(async (req: IRequest, res) => {
         new ApiResponse(200, publishAVideo, "Video published successfully.")
       );
   } catch (error) {
+    console.error(error);
     throw new ApiError(401, "Something went wrong while published video");
   }
 });
@@ -156,8 +156,6 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req: IRequest, res) => {
   const { videoId } = req.params;
-
-  //TODO: update video details like title, description, thumbnail
 
   const { title, description } = req.body;
 
@@ -201,7 +199,6 @@ const updateVideo = asyncHandler(async (req: IRequest, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: delete video
 
   const deletedVideo = await Video.findByIdAndDelete(videoId);
 

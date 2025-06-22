@@ -85,7 +85,7 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
       username: username.toLowerCase(),
       email,
       coverImage: coverImage?.url || "",
-      avatar: avatar?.url || "" ,
+      avatar: avatar?.url || "",
       password,
     });
 
@@ -126,7 +126,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const exitedUser = await User.findOne({
     $or: [{ email }, { username }],
-  }).select('+password');
+  }).select("+password");
 
   if (!exitedUser) {
     throw new ApiError(400, "Invalid credentials.");
@@ -146,7 +146,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // query once for getting fresh userObject .
 
-  const loggedUser = await User.findById(exitedUser._id)
+  const loggedUser = await User.findById(exitedUser._id);
 
   if (!loggedUser) {
     throw new ApiError(502, "User not found .");
@@ -162,33 +162,29 @@ const loginUser = asyncHandler(async (req, res) => {
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
-      new ApiResponse(
-        200,
-        { user: loggedUser},
-        "User Logged in successfully."
-      )
+      new ApiResponse(200, { user: loggedUser }, "User Logged in successfully.")
     );
 });
 
 // Refresh the access token
 const refreshAcessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
-  req.cookies.refreshToken || req.body.refreshToken;
-  
+    req.cookies.refreshToken || req.body.refreshToken;
+
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is required.");
   }
-  
+
   try {
     const decodedtoken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET as string
     ) as JwtPayload;
-    
+
     if (!decodedtoken || !decodedtoken.id) {
       throw new ApiError(401, "Invalid refresh token");
     }
-    
+
     const user = await User.findById(decodedtoken.id).select("+refreshToken");
 
     if (!user) {
@@ -281,20 +277,20 @@ const getCurrentUser = asyncHandler(async (req: IAuthRequest, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req: IAuthRequest, res) => {
-  const { fullname, email,username } = req.body;
+  const { fullname, email, username } = req.body;
 
   if (!fullname || !email) {
     throw new ApiError(400, "Fullname and email are required.");
   }
-  const updatePayload = {fullname,email,username}
-  
+  const updatePayload = { fullname, email, username };
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {...updatePayload},
+      $set: { ...updatePayload },
     },
     { new: true }
-  )
+  );
 
   if (!user) {
     throw new ApiError(400, "Failed to update user details.");

@@ -3,7 +3,7 @@ class ApiError extends Error {
   public message: string;
   public errors: [] | undefined = [];
   static statusCode: number;
-  public isOperational:boolean
+  public isOperational: boolean;
   constructor(
     statusCode: number,
     message: string = "Something went Wrong.",
@@ -15,7 +15,7 @@ class ApiError extends Error {
     this.statusCode = statusCode;
     this.message = message;
     this.errors = errors;
-    this.isOperational = true
+    this.isOperational = true;
     if (stack) {
       this.stack;
     } else {
