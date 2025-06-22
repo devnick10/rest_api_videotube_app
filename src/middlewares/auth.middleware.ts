@@ -17,7 +17,7 @@ const isAuthenticated = async (
     req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    throw new ApiError(401, "Unauthorized");
+    return next(new ApiError(401, "Unauthorized"));
   }
 
   try {
@@ -29,7 +29,7 @@ const isAuthenticated = async (
     const user = await User.findById(decodeToken?.id)
 
     if (!user) {
-      throw new ApiError(401, "Unauthorized");
+      return next(new ApiError(401, "Unauthorized"));
     }
 
     req.user = user;
