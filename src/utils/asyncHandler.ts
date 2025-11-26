@@ -1,17 +1,12 @@
-import { RequestHandler, Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 
-// we put give asynhandler funtion our controller fun as a parameter on the fuction work we return on error we pass error to next funtion it's not good defination got the point .
-
-const asyncHandler = (
-  requestHandler: (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => Promise<void | Response<any>>
-): RequestHandler => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err));
+export function asyncHandler<
+  Req extends Request = Request,
+  Res extends Response = Response,
+>(
+  handler: (req: Req, res: Res, next: NextFunction) => Promise<any>
+): RequestHandler {
+  return (req: any, res: any, next: NextFunction) => {
+    Promise.resolve(handler(req, res, next)).catch(next);
   };
-};
-
-export { asyncHandler };
+}
