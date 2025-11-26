@@ -1,15 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { User } from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { ApiError } from "../utils/ApiError";
 import logger from "../utils/logger";
 
-export interface IAuthRequest extends Request {
-  user?: any;
-}
-
 const isAuthenticated = async (
-  req: IAuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -27,14 +22,10 @@ const isAuthenticated = async (
       process.env.ACCESS_TOKEN_SECRET as string
     ) as JwtPayload;
 
-    const user = await User.findById(decodeToken?.id);
-
-    if (!user) {
+    if (!decodeToken) {
       return next(new ApiError(401, "Unauthorized"));
     }
-
-    req.user = user;
-
+    req.userId = decodeToken.id;
     next();
   } catch (error) {
     logger.debug("Unauthorized", {
