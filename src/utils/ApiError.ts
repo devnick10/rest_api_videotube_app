@@ -1,3 +1,5 @@
+import { ZodError } from "zod";
+
 class ApiError extends Error {
   public statusCode: number;
   public message: string;
@@ -24,4 +26,14 @@ class ApiError extends Error {
   }
 }
 
-export { ApiError };
+class ValidationError extends ApiError {
+  constructor(
+    public zodError: ZodError,
+    statusCode: number = 401,
+    message: string = "Validation error."
+  ) {
+    super(statusCode, message);
+    this.zodError = zodError;
+  }
+}
+export { ApiError, ValidationError };

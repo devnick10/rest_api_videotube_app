@@ -1,16 +1,19 @@
-import { ApiError } from "../utils/ApiError";
+import { Request } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import mongoose from "mongoose";
+import { User } from "../models/user.model";
+import {
+  changePasswordSchema,
+  getUserChannelProfileSchema,
+  loginSchema,
+  registerSchema,
+  updateAccountDetailsSchema,
+} from "../schema/userSchema";
+import { ApiError, ValidationError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-import { User } from "../models/user.model";
 import { cloudinaryUploader, deleteFromCloudinary } from "../utils/cloudinary";
-import mongoose from "mongoose";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { IAuthRequest } from "../middlewares/auth.middleware";
 import logger from "../utils/logger";
-
-export interface IRequest extends IAuthRequest {
-  files?: any;
-}
 
 const generateAccessAndRefreshToken = async (
   userid: mongoose.Types.ObjectId
@@ -42,15 +45,13 @@ const generateAccessAndRefreshToken = async (
   }
 };
 
-const registerUser = asyncHandler(async (req: IRequest, res) => {
-  const { fullname, username, email, password } = req.body;
-
-  if (
-    [fullname, username, email, password].some((field) => field?.trim() === "")
-  ) {
-    throw new ApiError(400, "All fields are required");
+const registerUser = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = registerSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { fullname, email, username, password } = data;
   const exitedUser = await User.findOne({
     $or: [{ email }, { username: username.toLowerCase() }],
   });
@@ -58,8 +59,9 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
   if (exitedUser) {
     throw new ApiError(409, "User with email or password already exit.");
   }
-
-  const avatarlocalPath = req.files?.avatar?.[0]?.path || "";
+  // @ts-expect-error avatar image might be empty
+  const avatarlocalPath = req.files?.avatar[0]?.path || "";
+  // @ts-expect-error avatar image might be empty
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   let avatar;
@@ -101,7 +103,7 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
       password,
     });
 
-    const createdUser = await User.findById(user._id).select(
+    const createdUser = await User.findById(user.id).select(
       "-password -refreshToken"
     );
 
@@ -132,13 +134,13 @@ const registerUser = asyncHandler(async (req: IRequest, res) => {
   }
 });
 
-const loginUser = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
-
-  if ([username, email, password].some((field) => field?.trim() === "")) {
-    throw new ApiError(400, "All fields are required");
+const loginUser = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = loginSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { username, email, password } = data;
   const exitedUser = await User.findOne({
     $or: [{ email }, { username }],
   }).select("+password");
@@ -156,12 +158,12 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    exitedUser._id
+    exitedUser.id
   );
 
   // query once for getting fresh userObject .
 
-  const loggedUser = await User.findById(exitedUser._id);
+  const loggedUser = await User.findById(exitedUser.id, { password: false });
 
   if (!loggedUser) {
     throw new ApiError(502, "User not found .");
@@ -182,7 +184,7 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 // Refresh the access token
-const refreshAcessToken = asyncHandler(async (req, res) => {
+const refreshAcessToken = asyncHandler<Request>(async (req, res) => {
   const incomingRefreshToken =
     req.cookies.refreshToken || req.body.refreshToken;
 
@@ -215,7 +217,7 @@ const refreshAcessToken = asyncHandler(async (req, res) => {
       secure: process.env.NODE_ENV === "production",
     };
     const { accessToken, refreshToken: newrefreshToken } =
-      await generateAccessAndRefreshToken(user._id);
+      await generateAccessAndRefreshToken(user.id);
 
     return res
       .status(200)
@@ -240,9 +242,9 @@ const refreshAcessToken = asyncHandler(async (req, res) => {
   }
 });
 
-const logoutUser = asyncHandler(async (req: IAuthRequest, res) => {
+const logoutUser = asyncHandler<Request>(async (req, res) => {
   const updatedUser = await User.findByIdAndUpdate(
-    req.user?._id,
+    req.userId,
     {
       $set: { refreshToken: "" },
     },
@@ -265,10 +267,15 @@ const logoutUser = asyncHandler(async (req: IAuthRequest, res) => {
     .json(new ApiResponse(200, {}, "Logout successfully"));
 });
 
-const changeCurrentPassword = asyncHandler(async (req: IAuthRequest, res) => {
-  const { oldPassword, newPassword } = req.body;
+const changeCurrentPassword = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = changePasswordSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
+  }
 
-  const user = await User.findById(req.user._id).select("+password");
+  const { oldPassword, newPassword } = data;
+
+  const user = await User.findById(req.userId).select("+password");
 
   if (!user) {
     throw new ApiError(401, "User not found.");
@@ -289,22 +296,28 @@ const changeCurrentPassword = asyncHandler(async (req: IAuthRequest, res) => {
     .json(new ApiResponse(200, "Password change successfully"));
 });
 
-const getCurrentUser = asyncHandler(async (req: IAuthRequest, res) => {
+const getCurrentUser = asyncHandler<Request>(async (req, res) => {
+  const user = await User.findById(req.userId);
+  if (!user) {
+    throw new ApiError(404, "user not found");
+  }
   return res
     .status(200)
-    .json(new ApiResponse(200, req.user, "Current user details."));
+    .json(new ApiResponse(200, user, "Current user details."));
 });
 
-const updateAccountDetails = asyncHandler(async (req: IAuthRequest, res) => {
-  const { fullname, email, username } = req.body;
-
-  if (!fullname || !email) {
-    throw new ApiError(400, "Fullname and email are required.");
+const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = updateAccountDetailsSchema.safeParse(
+    req.body
+  );
+  if (!success) {
+    throw new ValidationError(error);
   }
-  const updatePayload = { fullname, email, username };
+
+  const updatePayload = { ...data };
 
   const user = await User.findByIdAndUpdate(
-    req.user._id,
+    req.userId,
     {
       $set: { ...updatePayload },
     },
@@ -320,7 +333,8 @@ const updateAccountDetails = asyncHandler(async (req: IAuthRequest, res) => {
     .json(new ApiResponse(200, user, "Account details updated successfully."));
 });
 
-const updateAvatar = asyncHandler(async (req: IRequest, res) => {
+const updateAvatar = asyncHandler<Request>(async (req, res) => {
+  // @ts-expect-error avater might be empty
   const avatarLocalPath = req.files?.avatar?.[0]?.path || "";
 
   if (!avatarLocalPath) {
@@ -340,7 +354,7 @@ const updateAvatar = asyncHandler(async (req: IRequest, res) => {
   }
 
   const user = await User.findByIdAndUpdate(
-    req.user._id,
+    req.userId,
     {
       $set: { avatar },
     },
@@ -356,7 +370,8 @@ const updateAvatar = asyncHandler(async (req: IRequest, res) => {
     .json(new ApiResponse(200, user, "Update avatar successfully."));
 });
 
-const updateCoverImage = asyncHandler(async (req: IRequest, res) => {
+const updateCoverImage = asyncHandler<Request>(async (req, res) => {
+  // @ts-expect-error  coverImage might be empty
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   if (!coverImagelocalPath) {
@@ -375,7 +390,7 @@ const updateCoverImage = asyncHandler(async (req: IRequest, res) => {
   }
 
   const user = await User.findByIdAndUpdate(
-    req.user._id,
+    req.userId,
     {
       $set: { coverImage: coverImage?.url },
     },
@@ -391,13 +406,15 @@ const updateCoverImage = asyncHandler(async (req: IRequest, res) => {
     .json(new ApiResponse(200, user, "Update avatar successfully."));
 });
 
-const getUserChannelProfile = asyncHandler(async (req: IRequest, res) => {
-  const { username } = req.params;
-
-  if (!username?.trim()) {
-    throw new ApiError(400, "Username is required.");
+const getUserChannelProfile = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = getUserChannelProfileSchema.safeParse(
+    req.params.username
+  );
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { username } = data;
   const channel = await User.aggregate([
     {
       $match: {
@@ -430,7 +447,7 @@ const getUserChannelProfile = asyncHandler(async (req: IRequest, res) => {
         },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user._id, "$subcribers.subscriber"] },
+            if: { $in: [req.userId, "$subcribers.subscriber"] },
             then: true,
             else: false,
           },
@@ -451,8 +468,6 @@ const getUserChannelProfile = asyncHandler(async (req: IRequest, res) => {
     },
   ]);
 
-  console.log(channel);
-
   if (!channel?.length) {
     throw new ApiError(401, "Channel not found.");
   }
@@ -464,11 +479,11 @@ const getUserChannelProfile = asyncHandler(async (req: IRequest, res) => {
     );
 });
 
-const getWatchHistory = asyncHandler(async (req: IRequest, res) => {
+const getWatchHistory = asyncHandler<Request>(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req.user?._id),
+        _id: req.userId,
       },
     },
     {
@@ -523,15 +538,15 @@ const getWatchHistory = asyncHandler(async (req: IRequest, res) => {
 });
 
 export {
-  registerUser,
-  loginUser,
-  refreshAcessToken,
-  logoutUser,
   changeCurrentPassword,
   getCurrentUser,
+  getUserChannelProfile,
+  getWatchHistory,
+  loginUser,
+  logoutUser,
+  refreshAcessToken,
+  registerUser,
   updateAccountDetails,
   updateAvatar,
   updateCoverImage,
-  getUserChannelProfile,
-  getWatchHistory,
 };
