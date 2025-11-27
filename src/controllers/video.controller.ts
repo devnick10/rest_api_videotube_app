@@ -1,15 +1,29 @@
 import mongoose from "mongoose";
 import { Video } from "../models/video.model";
-import { ApiError } from "../utils/ApiError";
+import { ApiError, ValidationError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import { cloudinaryUploader } from "../utils/cloudinary";
 import logger from "../utils/logger";
-import { IRequest } from "./user.controller";
+import { Request } from "express";
+import {
+  deleteVideoSchema,
+  getAllVideosSchema,
+  getVideoByIdSchema,
+  publishVideoSchema,
+  togglePublishStatusSchema,
+  updateVideoParamsSchema,
+  updateVideoSchema,
+} from "../schema/videoSchema";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  const { success, error, data } = getAllVideosSchema.safeParse(req.query);
+  if (!success) {
+    throw new ValidationError(error);
+  }
 
+  // page=1 and limit=10 default values set in validation schema;
+  const { page, limit, query, sortBy, sortType, userId } = data;
   const pageNo = Number(page);
   const pageLimit = Number(limit);
 
@@ -88,14 +102,16 @@ const getAllVideos = asyncHandler(async (req, res) => {
     );
 });
 
-const publishAVideo = asyncHandler(async (req: IRequest, res) => {
-  const { title, description } = req.body;
-
-  if (!title || !description) {
-    throw new ApiError(409, "Title and description required");
+const publishAVideo = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = publishVideoSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
+  const { title, description } = data;
 
+  // @ts-expect-error files might be emtpy
   const videolocalPath = req.files?.videoFile?.[0]?.path || "";
+  // @ts-expect-error files might be emtpy
   const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path || "";
 
   let video;
@@ -121,61 +137,63 @@ const publishAVideo = asyncHandler(async (req: IRequest, res) => {
     throw new ApiError(409, "Something went wrong while published video");
   }
 
-  try {
-    const publishedVideo = await Video.create({
-      videoFile: video?.url,
-      thumbnail: thumbnail?.url,
-      title,
-      description,
-      duration: video?.duration,
-      owner: req.user._id,
-    });
-    if (!publishedVideo) {
-      throw new ApiError(401, "Something went wrong while published video");
-    }
+  const publishedVideo = await Video.create({
+    videoFile: video?.url,
+    thumbnail: thumbnail?.url,
+    title,
+    description,
+    duration: video?.duration,
+    owner: req.userId,
+  });
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(200, publishAVideo, "Video published successfully.")
-      );
-  } catch (error) {
-    logger.debug("Something went wrong while published video", {
-      message: (error as Error).message,
-      stack: (error as Error).stack,
-    });
-    console.error(error);
+  if (!publishedVideo) {
     throw new ApiError(401, "Something went wrong while published video");
   }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, publishAVideo, "Video published successfully."));
+  return;
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-
-  if (!videoId) {
-    throw new ApiError(409, "Video id required.");
+  const { success, error, data } = getVideoByIdSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
-  const video = await Video.findById(videoId);
+  const video = await Video.findById(data.videoId);
 
   if (!video) {
     throw new ApiError(409, "Video not found.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, video, "Video fetched successfully."));
+  return;
 });
 
-const updateVideo = asyncHandler(async (req: IRequest, res) => {
-  const { videoId } = req.params;
-
-  const { title, description } = req.body;
-
-  if (!title || !description) {
-    throw new ApiError(409, "Title and description required");
+const updateVideo = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = updateVideoSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const {
+    success: isValidParams,
+    error: paramsValidationError,
+    data: paramsData,
+  } = updateVideoParamsSchema.safeParse(req.params);
+  if (!isValidParams) {
+    throw new ValidationError(paramsValidationError);
+  }
+
+  const { videoId } = paramsData;
+
+  const { title, description } = data;
+
+  // @ts-expect-error files might be empty
   const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path || "";
 
   let thumbnail;
@@ -187,10 +205,6 @@ const updateVideo = asyncHandler(async (req: IRequest, res) => {
       stack: (error as Error).stack,
     });
     throw new ApiError(409, "Something went wrong while published video");
-  }
-
-  if (!videoId) {
-    throw new ApiError(409, "Video id required.");
   }
 
   const video = await Video.findByIdAndUpdate(
@@ -209,27 +223,33 @@ const updateVideo = asyncHandler(async (req: IRequest, res) => {
     throw new ApiError(409, "Video not found.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, video, "Video Updated Successfully"));
+  return;
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-
-  const deletedVideo = await Video.findByIdAndDelete(videoId);
-
-  if (!deletedVideo) {
-    throw new ApiError(200, "Something went wrong while deleting video.");
+  const { success, error, data } = deleteVideoSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
   }
+  const { videoId } = data;
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Video delete successfully."));
+  await Video.findByIdAndDelete(videoId);
+
+  res.status(200).json(new ApiResponse(200, "Video delete successfully."));
+  return;
 });
 
-const togglePublishStatus = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
+const togglePublishStatus = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = togglePublishStatusSchema.safeParse(
+    req.params
+  );
+  if (!success) {
+    throw new ValidationError(error);
+  }
+  const { videoId } = data;
 
   const video = await Video.findById(videoId);
 
@@ -241,9 +261,10 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
   await video.save();
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, video, "Toggle published successfully."));
+  return;
 });
 
 export {
