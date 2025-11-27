@@ -1,15 +1,15 @@
-import mongoose from "mongoose";
-import { Video } from "../models/video.model";
+import { Request } from "express";
 import { Subscription } from "../models/subscription.model";
-import { ApiError } from "../utils/ApiError";
+import { Video } from "../models/video.model";
+import { getChannelVideosSchema } from "../schema/dashboardSchema";
+import { ApiError, ValidationError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-import { IRequest } from "./user.controller";
 
-const getChannelStats = asyncHandler(async (req: IRequest, res) => {
+const getChannelStats = asyncHandler<Request>(async (req, res) => {
   const stats = await Video.aggregate([
     {
-      $match: { owner: new mongoose.Types.ObjectId(req.user._id as string) },
+      $match: { owner: req.userId },
     },
     {
       $lookup: {
@@ -30,7 +30,7 @@ const getChannelStats = asyncHandler(async (req: IRequest, res) => {
   ]);
 
   const subscribersCount = await Subscription.countDocuments({
-    subscribedTo: req.user._id,
+    subscribedTo: req.userId,
   });
 
   if (!stats || stats.length === 0) {
@@ -44,22 +44,29 @@ const getChannelStats = asyncHandler(async (req: IRequest, res) => {
     totalSubscribers: subscribersCount,
   };
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(200, channelStats, "Channel stats fetched successfully.")
     );
+  return;
 });
 
-const getChannelVideos = asyncHandler(async (req: IRequest, res) => {
-  const { page = 1, limit = 10 } = req.query;
+const getChannelVideos = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = getChannelVideosSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
+  }
+
+  // default value page=1 limit=10 set by zod;
+  const { page, limit } = data;
 
   const pageNo = Number(page);
   const pageLimit = Number(limit);
   const skip = (pageNo - 1) * pageLimit;
 
   const videos = await Video.aggregate([
-    { $match: { owner: new mongoose.Types.ObjectId(req.user._id as string) } },
+    { $match: { owner: req.userId } },
     {
       $lookup: {
         from: "likes",
@@ -84,7 +91,7 @@ const getChannelVideos = asyncHandler(async (req: IRequest, res) => {
     { $limit: pageLimit },
   ]);
 
-  const totalVideos = await Video.countDocuments({ owner: req.user._id });
+  const totalVideos = await Video.countDocuments({ owner: req.userId });
 
   const response = {
     videos,
@@ -93,11 +100,12 @@ const getChannelVideos = asyncHandler(async (req: IRequest, res) => {
     totalPages: Math.ceil(totalVideos / pageLimit),
   };
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(200, response, "Channel videos fetched successfully.")
     );
+  return;
 });
 
 export { getChannelStats, getChannelVideos };

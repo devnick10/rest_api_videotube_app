@@ -1,13 +1,37 @@
+import { Request } from "express";
 import mongoose, { isValidObjectId } from "mongoose";
-import { ApiError } from "../utils/ApiError";
+import { Comment } from "../models/comments.model";
+import {
+  addCommentParamsSchema,
+  addCommentSchema,
+  deleteCommentSchema,
+  getVideoCommentsParamsSchema,
+  getVideoCommentsQuerySchema,
+  updateCommentParamsSchema,
+  updateCommentSchema,
+} from "../schema/commentSchema";
+import { ApiError, ValidationError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-import { Comment } from "../models/comments.model";
-import { IRequest } from "./user.controller";
 
-const getVideoComments = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-  const { page = 1, limit = 10 } = req.query;
+const getVideoComments = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = getVideoCommentsParamsSchema.safeParse(
+    req.params
+  );
+  const {
+    success: isValidQuery,
+    error: queryValidationError,
+    data: queryData,
+  } = getVideoCommentsQuerySchema.safeParse(req.query);
+  if (!success) {
+    throw new ValidationError(error);
+  }
+  if (!isValidQuery) {
+    throw new ValidationError(queryValidationError);
+  }
+
+  const { videoId } = data;
+  const { page, limit } = queryData;
 
   const pageNo = Number(page);
   const pageLimit = Number(limit);
@@ -76,41 +100,62 @@ const getVideoComments = asyncHandler(async (req, res) => {
         "Comments fetched successfully."
       )
     );
+  return;
 });
 
-const addComment = asyncHandler(async (req: IRequest, res) => {
-  const { videoId } = req.params;
-  const { content } = req.body;
-
-  if (!videoId || !content) {
-    throw new ApiError(400, "Video ID and content required.");
+const addComment = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = addCommentSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
+
+  const {
+    success: isValidParams,
+    error: paramsValidationError,
+    data: paramsData,
+  } = addCommentParamsSchema.safeParse(req.params);
+  if (!isValidParams) {
+    throw new ValidationError(paramsValidationError);
+  }
+
+  const { videoId } = paramsData;
+  const { content } = data;
 
   const comment = await Comment.create({
     content,
     video: videoId,
-    owner: req.user._id,
+    owner: req.userId,
   });
 
   if (!comment) {
     throw new ApiError(400, "Something went wrong while add comment.");
   }
 
-  return res
+  res
     .status(201)
     .json(new ApiResponse(201, comment, "Comment added successfully."));
+  return;
 });
 
-const updateComment = asyncHandler(async (req, res) => {
-  const { commentId } = req.params;
-  const { content } = req.body;
-
-  if (!isValidObjectId(commentId)) {
-    throw new ApiError(400, "Valid comment ID.");
+const updateComment = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = updateCommentSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
-  if (!content) {
-    throw new ApiError(400, "Comment id required.");
+  const {
+    success: isValidParams,
+    error: paramsValidationError,
+    data: paramsData,
+  } = updateCommentParamsSchema.safeParse(req.params);
+  if (!isValidParams) {
+    throw new ValidationError(paramsValidationError);
+  }
+
+  const { commentId } = paramsData;
+  const { content } = data;
+  if (!isValidObjectId(commentId)) {
+    throw new ApiError(400, "Valid comment ID.");
   }
 
   const comment = await Comment.findByIdAndUpdate(
@@ -125,27 +170,30 @@ const updateComment = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Something went wrong while update comment.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, comment, "Comment updated successfully."));
+  return;
 });
 
-const deleteComment = asyncHandler(async (req, res) => {
-  const { commentId } = req.params;
+const deleteComment = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = deleteCommentSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
+  }
 
+  const { commentId } = data;
   if (!isValidObjectId(commentId)) {
     throw new ApiError(400, "Valid comment ID.");
   }
 
   const deletedComment = await Comment.findByIdAndDelete(commentId);
-
   if (!deletedComment) {
     throw new ApiError(404, "Something went wrong while deleting comment.");
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Comment deleted successfully."));
+  res.status(200).json(new ApiResponse(200, "Comment deleted successfully."));
+  return;
 });
 
-export { getVideoComments, addComment, updateComment, deleteComment };
+export { addComment, deleteComment, getVideoComments, updateComment };
