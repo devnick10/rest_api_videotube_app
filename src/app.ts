@@ -59,11 +59,10 @@ import playlistRouter from "./routes/playlist.routes";
 import likeRouter from "./routes/like.routes";
 import commentRouter from "./routes/comment.routes";
 import dashboardRouter from "./routes/dashboard.routes";
-import logger from "./utils/logger";
 
 // routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
-app.use("/api/v1/users", userRouter);
+app.use("/api/v1/user", userRouter);
 app.use("/api/v1/video", videoRouter);
 app.use("/api/v1/tweet", tweetRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
