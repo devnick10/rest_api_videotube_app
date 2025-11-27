@@ -174,13 +174,14 @@ const loginUser = asyncHandler<Request>(async (req, res) => {
     secure: process.env.NODE_ENV === "production",
   };
 
-  return res
+  res
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(200, { user: loggedUser }, "User Logged in successfully.")
     );
+  return;
 });
 
 // Refresh the access token
@@ -192,54 +193,43 @@ const refreshAcessToken = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(401, "Refresh token is required.");
   }
 
-  try {
-    const decodedtoken = jwt.verify(
-      incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET as string
-    ) as JwtPayload;
+  const decodedtoken = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET as string
+  ) as JwtPayload;
 
-    if (!decodedtoken || !decodedtoken.id) {
-      throw new ApiError(401, "Invalid refresh token");
-    }
-
-    const user = await User.findById(decodedtoken.id).select("+refreshToken");
-
-    if (!user) {
-      throw new ApiError(401, "Invalid refresh token");
-    }
-
-    if (incomingRefreshToken !== user?.refreshToken) {
-      throw new ApiError(401, "Invalid refresh token");
-    }
-
-    const options = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    };
-    const { accessToken, refreshToken: newrefreshToken } =
-      await generateAccessAndRefreshToken(user.id);
-
-    return res
-      .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", newrefreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          { accessToken, refreshTOken: newrefreshToken },
-          "Access token refreshed successfully."
-        )
-      );
-  } catch (error) {
-    logger.debug("Failed to refresh access token ", {
-      message: (error as Error).message,
-      stack: (error as Error).message,
-    });
-    throw new ApiError(
-      500,
-      `Something went wrong while refresh access token. ${error}`
-    );
+  if (!decodedtoken || !decodedtoken.id) {
+    throw new ApiError(401, "Invalid refresh token");
   }
+
+  const user = await User.findById(decodedtoken.id).select("+refreshToken");
+
+  if (!user) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  if (incomingRefreshToken !== user?.refreshToken) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  };
+  const { accessToken, refreshToken: newrefreshToken } =
+    await generateAccessAndRefreshToken(user.id);
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", newrefreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { accessToken, refreshTOken: newrefreshToken },
+        "Access token refreshed successfully."
+      )
+    );
 });
 
 const logoutUser = asyncHandler<Request>(async (req, res) => {
@@ -291,9 +281,8 @@ const changeCurrentPassword = asyncHandler<Request>(async (req, res) => {
 
   await user?.save({ validateBeforeSave: false });
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Password change successfully"));
+  res.status(200).json(new ApiResponse(200, "Password change successfully"));
+  return;
 });
 
 const getCurrentUser = asyncHandler<Request>(async (req, res) => {
@@ -328,9 +317,10 @@ const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(400, "Failed to update user details.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, user, "Account details updated successfully."));
+  return;
 });
 
 const updateAvatar = asyncHandler<Request>(async (req, res) => {
@@ -365,9 +355,10 @@ const updateAvatar = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(401, "Failed to update avatar.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, user, "Update avatar successfully."));
+  return;
 });
 
 const updateCoverImage = asyncHandler<Request>(async (req, res) => {
