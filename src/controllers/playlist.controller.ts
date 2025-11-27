@@ -1,39 +1,48 @@
 import mongoose from "mongoose";
 import { Playlist } from "../models/playlist.model";
-import { ApiError } from "../utils/ApiError";
+import { ApiError, ValidationError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-import { IRequest } from "./user.controller";
+import { Request } from "express";
+import {
+  addVideoToPlaylistSchema,
+  createPlaylistSchema,
+  deletePlaylistSchema,
+  getPlaylistByIdSchema,
+  getUserPlaylistsSchema,
+  removeVideoFromPlaylistSchema,
+  updatePlaylistParamsSchema,
+  updatePlaylistSchema,
+} from "../schema/playlistSchema";
 
-const createPlaylist = asyncHandler(async (req: IRequest, res) => {
-  const { name, description } = req.body;
-
-  if (!name || !description) {
-    throw new ApiError(400, "Name and description required.");
+const createPlaylist = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = createPlaylistSchema.safeParse(req.body);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { name, description } = data;
   const playlist = await Playlist.create({
     name,
     description,
-    owner: req.user._id,
+    owner: req.userId,
   });
 
   if (!playlist) {
     throw new ApiError(401, "Something went wrong while creating playlist.");
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Playlist created successfully."));
+  res.status(200).json(new ApiResponse(200, "Playlist created successfully."));
+  return;
 });
 
-const getUserPlaylists = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-
-  if (!userId) {
-    throw new ApiError(400, "User ID required.");
+const getUserPlaylists = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = getUserPlaylistsSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { userId } = data;
   const userPlaylist = await Playlist.aggregate([
     {
       $match: { owner: new mongoose.Types.ObjectId(userId) },
@@ -63,7 +72,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     },
   ]);
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(
@@ -72,33 +81,37 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         "Playlists fetched successfully."
       )
     );
+  return;
 });
 
-const getPlaylistById = asyncHandler(async (req, res) => {
-  const { playlistId } = req.params;
-
-  if (!playlistId) {
-    throw new ApiError(400, "Playlist ID required.");
+const getPlaylistById = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = getPlaylistByIdSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { playlistId } = data;
   const playlist = await Playlist.findById(playlistId);
 
   if (!playlist) {
     throw new ApiError(401, "Something went wrong while fetch playlist.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, playlist, "Playlist fetched successfully."));
+  return;
 });
 
-const addVideoToPlaylist = asyncHandler(async (req, res) => {
-  const { playlistId, videoId } = req.params;
-
-  if (!playlistId || !videoId) {
-    throw new ApiError(400, "Playlist ID and video ID required.");
+const addVideoToPlaylist = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = addVideoToPlaylistSchema.safeParse(
+    req.params
+  );
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { playlistId, videoId } = data;
   const addedvideo = await Playlist.findByIdAndUpdate(
     playlistId,
     {
@@ -122,13 +135,15 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     );
 });
 
-const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
-  const { playlistId, videoId } = req.params;
-
-  if (!playlistId || !videoId) {
-    throw new ApiError(400, "Playlist ID and video ID required.");
+const removeVideoFromPlaylist = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = removeVideoFromPlaylistSchema.safeParse(
+    req.params
+  );
+  if (!success) {
+    throw new ValidationError(error);
   }
 
+  const { playlistId, videoId } = data;
   const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
     {
@@ -143,13 +158,18 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(409, "Something went wrong while remove video.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, updatedPlaylist, "Video removed Successfully."));
+  return;
 });
 
-const deletePlaylist = asyncHandler(async (req, res) => {
-  const { playlistId } = req.params;
+const deletePlaylist = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = deletePlaylistSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
+  }
+  const { playlistId } = data;
 
   if (!playlistId) {
     throw new ApiError(400, "Playlist ID required.");
@@ -166,13 +186,22 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Playlist deleted successfully."));
 });
 
-const updatePlaylist = asyncHandler(async (req, res) => {
-  const { playlistId } = req.params;
-  const { name, description } = req.body;
-
-  if (!playlistId || !name || !description) {
-    throw new ApiError(400, "All fields are required.");
+const updatePlaylist = asyncHandler<Request>(async (req, res) => {
+  const { success, error, data } = updatePlaylistSchema.safeParse(req.body);
+  const {
+    success: isValidparams,
+    error: paramsValidationError,
+    data: paramsData,
+  } = updatePlaylistParamsSchema.safeParse(req.params);
+  if (!success) {
+    throw new ValidationError(error);
   }
+  if (!isValidparams) {
+    throw new ValidationError(paramsValidationError);
+  }
+
+  const { playlistId } = paramsData;
+  const { name, description } = data;
 
   const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
@@ -187,11 +216,12 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(409, "Something went wrong while update playlist.");
   }
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(200, updatedPlaylist, "Playlist updated successfully.")
     );
+  return;
 });
 
 export {
