@@ -24,9 +24,7 @@ const cloudinaryUploader = async (localFilePath: string) => {
     });
 
     await fs.unlink(localFilePath);
-
-    console.log("local files deleted after aupload");
-
+    logger.debug("local files deleted after aupload");
     return uploadResult;
   } catch (error) {
     logger.debug("File uploading failed.", {
