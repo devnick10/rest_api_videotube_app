@@ -1,7 +1,7 @@
 import winston from "winston";
-
+import dotenv from "dotenv";
+dotenv.config();
 const isDev = process.env.NODE_ENV !== "production";
-
 const logger = winston.createLogger({
   level: isDev ? "debug" : "info",
   format: winston.format.combine(
@@ -13,5 +13,4 @@ const logger = winston.createLogger({
   ),
   transports: [new winston.transports.Console()],
 });
-
 export default logger;

@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+dotenv.config({
+  path: ".env",
+});
 import { app } from "./app";
 import connectDB from "./db";
 import logger from "./utils/logger";
@@ -11,5 +15,5 @@ connectDB()
   })
   .catch((err) => {
     logger.error(`MongoDB connetion error`);
-    console.error(err);
+    logger.error(err);
   });
