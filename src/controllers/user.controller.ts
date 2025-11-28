@@ -61,7 +61,6 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
   }
   // @ts-expect-error avatar image might be empty
   const avatarlocalPath = req.files?.avatar[0]?.path || "";
-  // @ts-expect-error avatar image might be empty
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   let avatar;
@@ -69,21 +68,19 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
   if (avatarlocalPath) {
     try {
       avatar = await cloudinaryUploader(avatarlocalPath);
-
-      console.log("Uploaded avatar", avatar);
+      logger.debug("Uploaded avatar", avatar);
     } catch (error) {
       logger.debug("Error uploading avatar.", {
         message: (error as Error).message,
         stack: (error as Error).stack,
       });
-
       throw new ApiError(500, "Failed to Upload avatar.");
     }
-  } else if (coverImagelocalPath) {
+  }
+  if (coverImagelocalPath) {
     try {
       coverImage = await cloudinaryUploader(coverImagelocalPath);
-
-      console.log("Uploaded coverImage", coverImage);
+      logger.debug("Uploaded coverImage", coverImage);
     } catch (error) {
       logger.debug("Error uploading coverImage.", {
         message: (error as Error).message,
@@ -324,7 +321,6 @@ const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
 });
 
 const updateAvatar = asyncHandler<Request>(async (req, res) => {
-  // @ts-expect-error avater might be empty
   const avatarLocalPath = req.files?.avatar?.[0]?.path || "";
 
   if (!avatarLocalPath) {
@@ -362,7 +358,6 @@ const updateAvatar = asyncHandler<Request>(async (req, res) => {
 });
 
 const updateCoverImage = asyncHandler<Request>(async (req, res) => {
-  // @ts-expect-error  coverImage might be empty
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   if (!coverImagelocalPath) {
