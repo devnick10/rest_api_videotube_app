@@ -8,11 +8,13 @@ import hpp from "hpp";
 import mongoSanitize from "express-mongo-sanitize";
 import morgan from "morgan";
 const app = express();
+const CORS_ORIGIN = config.get("CORS_ORIGIN");
+const NODE_ENV = config.get("NODE_ENV");
 
 // cors
 app.use(
   cors({
-    origin: [`${process.env.CORS_ORIGIN}`],
+    origin: [`${CORS_ORIGIN}`],
     credentials: true,
   })
 );
@@ -40,7 +42,7 @@ app.use(cookieParser());
 app.use(status());
 
 // logging middleware
-if (process.env.NODE_ENV === "development") {
+if (NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
@@ -55,6 +57,7 @@ import playlistRouter from "./routes/playlist.routes";
 import likeRouter from "./routes/like.routes";
 import commentRouter from "./routes/comment.routes";
 import dashboardRouter from "./routes/dashboard.routes";
+import { config } from "./config/config";
 
 // routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
