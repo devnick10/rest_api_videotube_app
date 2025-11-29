@@ -1,13 +1,14 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs/promises";
 import logger from "./logger";
+import { config } from "../config/config";
 
 const cloudinaryUploader = async (localFilePath: string) => {
   // Configuration
   cloudinary.config({
-    cloud_name: `${process.env.CLOUDINARY_CLOUD_NAME}`,
-    api_key: `${process.env.CLOUDINARY_API_KEY}`,
-    api_secret: `${process.env.CLOUDINARY_API_SECRET}`,
+    cloud_name: `${config.get("CLOUDINARY_CLOUD_NAME")}`,
+    api_key: `${config.get("CLOUDINARY_API_KEY")}`,
+    api_secret: `${config.get("CLOUDINARY_API_SECRET")}`,
   });
 
   try {

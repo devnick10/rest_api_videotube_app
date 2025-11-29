@@ -14,6 +14,7 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import { cloudinaryUploader, deleteFromCloudinary } from "../utils/cloudinary";
 import logger from "../utils/logger";
+import { config } from "../config/config";
 
 const generateAccessAndRefreshToken = async (
   userid: mongoose.Types.ObjectId
@@ -168,7 +169,7 @@ const loginUser = asyncHandler<Request>(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: config.get("NODE_ENV") === "production",
   };
 
   res
@@ -192,7 +193,7 @@ const refreshAcessToken = asyncHandler<Request>(async (req, res) => {
 
   const decodedtoken = jwt.verify(
     incomingRefreshToken,
-    process.env.REFRESH_TOKEN_SECRET as string
+    config.get(" REFRESH_TOKEN_SECRET")
   ) as JwtPayload;
 
   if (!decodedtoken || !decodedtoken.id) {
@@ -211,7 +212,7 @@ const refreshAcessToken = asyncHandler<Request>(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: config.get("NODE_ENV") === "production",
   };
   const { accessToken, refreshToken: newrefreshToken } =
     await generateAccessAndRefreshToken(user.id);
@@ -244,7 +245,7 @@ const logoutUser = asyncHandler<Request>(async (req, res) => {
 
   const option = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: config.get("NODE_ENV") === "production",
   };
 
   return res

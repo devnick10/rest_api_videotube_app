@@ -5,12 +5,14 @@ dotenv.config({
 import { app } from "./app";
 import connectDB from "./db";
 import logger from "./utils/logger";
+import { config } from "./config/config";
+const PORT = config.get("PORT");
 
 // connect database
 connectDB()
   .then(() => {
-    app.listen(process.env.PORT || 3000, () => {
-      logger.info(`server is running at PORT || ${process.env.PORT}`);
+    app.listen(config.get("PORT"), () => {
+      logger.info(`server is running at PORT || ${PORT}`);
     });
   })
   .catch((err) => {

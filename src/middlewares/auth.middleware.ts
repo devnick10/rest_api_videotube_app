@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApiError } from "../utils/ApiError";
 import logger from "../utils/logger";
+import { config } from "../config/config";
 
 const isAuthenticated = async (
   req: Request,
@@ -19,7 +20,7 @@ const isAuthenticated = async (
   try {
     const decodeToken = jwt.verify(
       token,
-      process.env.ACCESS_TOKEN_SECRET as string
+      config.get("ACCESS_TOKEN_SECRET")
     ) as JwtPayload;
 
     if (!decodeToken) {

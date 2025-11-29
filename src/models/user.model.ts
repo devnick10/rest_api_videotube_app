@@ -1,6 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { config } from "../config/config";
 
 export interface IUser extends Document {
   username: string;
@@ -89,9 +90,9 @@ userSchema.methods.generateAccessToken = function (): string {
     {
       id: this._id,
     },
-    process.env.ACCESS_TOKEN_SECRET as string,
+    config.get("ACCESS_TOKEN_SECRET"),
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY as string,
+      expiresIn: config.get("ACCESS_TOKEN_EXPIRY"),
     }
   );
 };
@@ -101,9 +102,9 @@ userSchema.methods.generateRefreshToken = function (): string {
     {
       id: this._id,
     },
-    process.env.REFRESH_TOKEN_SECRET as string,
+    config.get("REFRESH_TOKEN_SECRET"),
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY as string,
+      expiresIn: config.get("REFRESH_TOKEN_EXPIRY"),
     }
   );
 };

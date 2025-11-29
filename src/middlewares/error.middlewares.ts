@@ -1,5 +1,6 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/ApiError";
+import { config } from "../config/config";
 
 const errorHandler: ErrorRequestHandler = (
   err: ApiError,
@@ -9,7 +10,7 @@ const errorHandler: ErrorRequestHandler = (
 ) => {
   err.statusCode = err.statusCode || 500;
 
-  if (process.env.NODE_ENV === "development") {
+  if (config.get("NODE_ENV") === "development") {
     // Development error response
     res.status(err.statusCode).json({
       error: err,

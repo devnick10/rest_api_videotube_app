@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants";
 import logger from "../utils/logger";
+import { config } from "../config/config";
 
 const connectDB = async () => {
   try {
     const connectionInstence = await mongoose.connect(
-      `${process.env.DB_URI}/${DB_NAME}`
+      `${config.get("DB_URI")}/${DB_NAME}`
     );
 
     logger.info(
