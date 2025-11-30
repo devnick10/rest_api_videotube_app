@@ -67,8 +67,8 @@ const toggleCommentLike = asyncHandler<Request>(async (req, res) => {
 
   if (exitstingCommentLike) {
     await Like.findByIdAndDelete(exitstingCommentLike._id);
-
-    return res.status(200).json(new ApiResponse(200, "Unlike successfully."));
+    res.status(200).json(new ApiResponse(200, "Unlike successfully."));
+    return;
   }
 
   const addLikeToComment = await Like.create({
@@ -80,7 +80,8 @@ const toggleCommentLike = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(500, "Something went wrong while like.");
   }
 
-  return res.status(201).json(new ApiResponse(201, "Like successfully."));
+  res.status(201).json(new ApiResponse(201, "Like successfully."));
+  return;
 });
 
 const toggleTweetLike = asyncHandler<Request>(async (req, res) => {
@@ -155,7 +156,8 @@ const getLikedVideos = asyncHandler<Request>(async (req, res) => {
   ]);
 
   if (!likedVidoes || likedVidoes.length === 0) {
-    return res.status(404).json(new ApiResponse(404, "No liked videos found."));
+    res.status(404).json(new ApiResponse(404, "No liked videos found."));
+    return;
   }
 
   res

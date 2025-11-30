@@ -91,7 +91,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     prevPage: pageNo > 1,
   };
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(
@@ -100,6 +100,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         "Videos fetched successfully."
       )
     );
+  return;
 });
 
 const publishAVideo = asyncHandler<Request>(async (req, res) => {

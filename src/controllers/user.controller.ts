@@ -62,6 +62,7 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
   }
   // @ts-expect-error avatar image might be empty
   const avatarlocalPath = req.files?.avatar[0]?.path || "";
+  // @ts-expect-error avatar image might be empty
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   let avatar;
@@ -109,9 +110,10 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
       throw new ApiError(409, "user regestration failed.");
     }
 
-    return res
+    res
       .status(200)
       .json(new ApiResponse(200, createdUser, "User registered successfully"));
+    return;
   } catch (error) {
     logger.debug("User registraion failed.", {
       message: (error as Error).message,
@@ -217,7 +219,7 @@ const refreshAcessToken = asyncHandler<Request>(async (req, res) => {
   const { accessToken, refreshToken: newrefreshToken } =
     await generateAccessAndRefreshToken(user.id);
 
-  return res
+  res
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", newrefreshToken, options)
@@ -228,6 +230,7 @@ const refreshAcessToken = asyncHandler<Request>(async (req, res) => {
         "Access token refreshed successfully."
       )
     );
+  return;
 });
 
 const logoutUser = asyncHandler<Request>(async (req, res) => {
@@ -248,11 +251,12 @@ const logoutUser = asyncHandler<Request>(async (req, res) => {
     secure: config.get("NODE_ENV") === "production",
   };
 
-  return res
+  res
     .status(200)
     .clearCookie("accessToken", option)
     .clearCookie("refreshTOken", option)
     .json(new ApiResponse(200, {}, "Logout successfully"));
+  return;
 });
 
 const changeCurrentPassword = asyncHandler<Request>(async (req, res) => {
@@ -288,9 +292,8 @@ const getCurrentUser = asyncHandler<Request>(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "user not found");
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, user, "Current user details."));
+  res.status(200).json(new ApiResponse(200, user, "Current user details."));
+  return;
 });
 
 const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
@@ -322,6 +325,7 @@ const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
 });
 
 const updateAvatar = asyncHandler<Request>(async (req, res) => {
+  // @ts-expect-error avatar maybe undefined;
   const avatarLocalPath = req.files?.avatar?.[0]?.path || "";
 
   if (!avatarLocalPath) {
@@ -359,6 +363,7 @@ const updateAvatar = asyncHandler<Request>(async (req, res) => {
 });
 
 const updateCoverImage = asyncHandler<Request>(async (req, res) => {
+  // @ts-expect-error coverImage maybe undefined;
   const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
 
   if (!coverImagelocalPath) {
@@ -388,9 +393,10 @@ const updateCoverImage = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(401, "Failed to update avatar.");
   }
 
-  return res
+  res
     .status(200)
     .json(new ApiResponse(200, user, "Update avatar successfully."));
+  return;
 });
 
 const getUserChannelProfile = asyncHandler<Request>(async (req, res) => {
@@ -459,11 +465,12 @@ const getUserChannelProfile = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(401, "Channel not found.");
   }
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(200, channel[0], "Channel profile fetched successfully.")
     );
+  return;
 });
 
 const getWatchHistory = asyncHandler<Request>(async (req, res) => {
@@ -513,7 +520,7 @@ const getWatchHistory = asyncHandler<Request>(async (req, res) => {
     throw new ApiError(401, "User not found");
   }
 
-  return res
+  res
     .status(200)
     .json(
       new ApiResponse(
@@ -522,6 +529,7 @@ const getWatchHistory = asyncHandler<Request>(async (req, res) => {
         "Watch history fetched successfully."
       )
     );
+  return;
 });
 
 export {
