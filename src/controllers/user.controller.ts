@@ -15,7 +15,11 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { cloudinaryUploader, deleteFromCloudinary } from "../utils/cloudinary";
 import logger from "../utils/logger";
 import { config } from "../config/config";
-
+import { muiltithreadUpload } from "../multithreading";
+import { UploadApiResponse } from "cloudinary";
+interface UploadResponse extends UploadApiResponse {
+  localFilePath: string;
+}
 const generateAccessAndRefreshToken = async (
   userid: mongoose.Types.ObjectId
 ): Promise<{ accessToken: string; refreshToken: string }> => {
@@ -47,6 +51,7 @@ const generateAccessAndRefreshToken = async (
 };
 
 const registerUser = asyncHandler<Request>(async (req, res) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { success, error, data } = registerSchema.safeParse(req.body);
   if (!success) {
     throw new ValidationError(error);
@@ -60,52 +65,47 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
   if (exitedUser) {
     throw new ApiError(409, "User with email or password already exit.");
   }
-  // @ts-expect-error avatar image might be empty
-  const avatarlocalPath = req.files?.avatar[0]?.path || "";
-  // @ts-expect-error avatar image might be empty
-  const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
+  const avatarlocalPath = files.avatar[0]?.path || "";
+  const coverImagelocalPath = files.coverImage?.[0]?.path || "";
+  // filter empty values
+  const localFiles = [avatarlocalPath, coverImagelocalPath].filter(Boolean);
 
-  let avatar;
-  let coverImage;
-  if (avatarlocalPath) {
-    try {
-      avatar = await cloudinaryUploader(avatarlocalPath);
-      logger.debug("Uploaded avatar", avatar);
-    } catch (error) {
-      logger.debug("Error uploading avatar.", {
-        message: (error as Error).message,
-        stack: (error as Error).stack,
-      });
-      throw new ApiError(500, "Failed to Upload avatar.");
-    }
+  let uploadResult;
+  try {
+    uploadResult = (await muiltithreadUpload(localFiles)) as UploadResponse[];
+    logger.debug("Uploaded avatar", uploadResult);
+  } catch (error) {
+    logger.debug("Error uploading avatar.", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    throw new ApiError(500, "Failed to Upload avatar.");
   }
-  if (coverImagelocalPath) {
-    try {
-      coverImage = await cloudinaryUploader(coverImagelocalPath);
-      logger.debug("Uploaded coverImage", coverImage);
-    } catch (error) {
-      logger.debug("Error uploading coverImage.", {
-        message: (error as Error).message,
-        stack: (error as Error).stack,
-      });
-      throw new ApiError(500, "Failed to Upload coverImage.");
+
+  let coverImageUrl: string = "";
+  let avatarImageUrl: string = "";
+  uploadResult.forEach((file) => {
+    if (file.localFilePath == avatarlocalPath) {
+      avatarImageUrl = file.secure_url || file.url;
     }
-  }
+    if (file.localFilePath == coverImagelocalPath) {
+      coverImageUrl = file.secure_url || file.url;
+    }
+  });
 
   try {
     const user = await User.create({
       fullname,
       username: username.toLowerCase(),
       email,
-      coverImage: coverImage?.url || "",
-      avatar: avatar?.url || "",
+      coverImage: coverImageUrl,
+      avatar: avatarImageUrl,
       password,
     });
 
     const createdUser = await User.findById(user.id).select(
       "-password -refreshToken"
     );
-
     if (!createdUser) {
       throw new ApiError(409, "user regestration failed.");
     }
@@ -119,14 +119,9 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
       message: (error as Error).message,
       stack: (error as Error).message,
     });
-
-    if (avatar) {
-      await deleteFromCloudinary(avatar.public_id);
-    }
-    if (coverImage) {
-      await deleteFromCloudinary(coverImage.public_id);
-    }
-
+    uploadResult.forEach(async (file) => {
+      await deleteFromCloudinary(file.public_id);
+    });
     throw new ApiError(
       409,
       "Something went wrong while registering a user and images were deleted."
