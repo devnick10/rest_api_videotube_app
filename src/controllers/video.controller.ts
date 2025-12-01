@@ -104,16 +104,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 const publishAVideo = asyncHandler<Request>(async (req, res) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { success, error, data } = publishVideoSchema.safeParse(req.body);
   if (!success) {
     throw new ValidationError(error);
   }
   const { title, description } = data;
 
-  // @ts-expect-error files might be emtpy
-  const videolocalPath = req.files?.videoFile?.[0]?.path || "";
-  // @ts-expect-error files might be emtpy
-  const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path || "";
+  const videolocalPath = files.videoFile?.[0]?.path || "";
+  const thumbnailLocalPath = files.thumbnail?.[0]?.path || "";
 
   let video;
 
@@ -176,6 +175,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 });
 
 const updateVideo = asyncHandler<Request>(async (req, res) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { success, error, data } = updateVideoSchema.safeParse(req.body);
   if (!success) {
     throw new ValidationError(error);
@@ -194,8 +194,7 @@ const updateVideo = asyncHandler<Request>(async (req, res) => {
 
   const { title, description } = data;
 
-  // @ts-expect-error files might be empty
-  const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path || "";
+  const thumbnailLocalPath = files.thumbnail?.[0]?.path || "";
 
   let thumbnail;
   try {

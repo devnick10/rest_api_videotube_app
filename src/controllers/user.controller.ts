@@ -47,6 +47,7 @@ const generateAccessAndRefreshToken = async (
 };
 
 const registerUser = asyncHandler<Request>(async (req, res) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { success, error, data } = registerSchema.safeParse(req.body);
   if (!success) {
     throw new ValidationError(error);
@@ -60,10 +61,8 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
   if (exitedUser) {
     throw new ApiError(409, "User with email or password already exit.");
   }
-  // @ts-expect-error avatar image might be empty
-  const avatarlocalPath = req.files?.avatar[0]?.path || "";
-  // @ts-expect-error avatar image might be empty
-  const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
+  const avatarlocalPath = files.avatar[0]?.path || "";
+  const coverImagelocalPath = files.coverImage?.[0]?.path || "";
 
   let avatar;
   let coverImage;
@@ -325,8 +324,8 @@ const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
 });
 
 const updateAvatar = asyncHandler<Request>(async (req, res) => {
-  // @ts-expect-error avatar maybe undefined;
-  const avatarLocalPath = req.files?.avatar?.[0]?.path || "";
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const avatarLocalPath = files.avatar?.[0]?.path || "";
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Failed to update avatar.");
@@ -363,8 +362,8 @@ const updateAvatar = asyncHandler<Request>(async (req, res) => {
 });
 
 const updateCoverImage = asyncHandler<Request>(async (req, res) => {
-  // @ts-expect-error coverImage maybe undefined;
-  const coverImagelocalPath = req.files?.coverImage?.[0]?.path || "";
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const coverImagelocalPath = files.coverImage?.[0]?.path || "";
 
   if (!coverImagelocalPath) {
     throw new ApiError(400, "Failed to update avatar.");
