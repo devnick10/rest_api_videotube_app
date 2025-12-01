@@ -67,23 +67,20 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
   }
   const avatarlocalPath = files.avatar[0]?.path || "";
   const coverImagelocalPath = files.coverImage?.[0]?.path || "";
-<<<<<<< HEAD
-=======
   // filter empty values
   const localFiles = [avatarlocalPath, coverImagelocalPath].filter(Boolean);
->>>>>>> feature/optimizeFileUpload
 
   let uploadResult;
-    try {
+  try {
     uploadResult = (await muiltithreadUpload(localFiles)) as UploadResponse[];
     logger.debug("Uploaded avatar", uploadResult);
-    } catch (error) {
-      logger.debug("Error uploading avatar.", {
-        message: (error as Error).message,
-        stack: (error as Error).stack,
-      });
-      throw new ApiError(500, "Failed to Upload avatar.");
-    }
+  } catch (error) {
+    logger.debug("Error uploading avatar.", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    throw new ApiError(500, "Failed to Upload avatar.");
+  }
 
   let coverImageUrl: string = "";
   let avatarImageUrl: string = "";
