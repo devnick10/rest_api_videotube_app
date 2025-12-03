@@ -1,3 +1,4 @@
+import { config } from "./config/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -57,7 +58,6 @@ import playlistRouter from "./routes/playlist.routes";
 import likeRouter from "./routes/like.routes";
 import commentRouter from "./routes/comment.routes";
 import dashboardRouter from "./routes/dashboard.routes";
-import { config } from "./config/config";
 
 // routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
