@@ -1,25 +1,30 @@
+import { UploadApiResponse } from "cloudinary";
 import { Request } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import mongoose from "mongoose";
+import { config } from "../config/config";
 import { User } from "../models/user.model";
+import { muiltithreadUpload } from "../multithreading";
 import {
   changePasswordSchema,
   getUserChannelProfileSchema,
   loginSchema,
+  multipleUploadSchema,
   registerSchema,
   updateAccountDetailsSchema,
+  uploadAvatarFileSchema,
+  uploadCoverImageFileSchema,
 } from "../schema/userSchema";
 import { ApiError, ValidationError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import { cloudinaryUploader, deleteFromCloudinary } from "../utils/cloudinary";
 import logger from "../utils/logger";
-import { config } from "../config/config";
-import { muiltithreadUpload } from "../multithreading";
-import { UploadApiResponse } from "cloudinary";
+import fs from "node:fs/promises";
 interface UploadResponse extends UploadApiResponse {
   localFilePath: string;
 }
+
 const generateAccessAndRefreshToken = async (
   userid: mongoose.Types.ObjectId
 ): Promise<{ accessToken: string; refreshToken: string }> => {
@@ -52,28 +57,40 @@ const generateAccessAndRefreshToken = async (
 
 const registerUser = asyncHandler<Request>(async (req, res) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const { success, error, data } = registerSchema.safeParse(req.body);
-  if (!success) {
-    throw new ValidationError(error);
+
+  const parsedFiles = multipleUploadSchema.safeParse(files);
+  if (!parsedFiles.success) {
+    await fs.unlink(files.avatar[0].path);
+    await fs.unlink(files.coverImage[0].path);
+    throw new ValidationError(parsedFiles.error);
   }
 
-  const { fullname, email, username, password } = data;
+  const parsedBody = registerSchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    throw new ValidationError(parsedBody.error);
+  }
+
+  const { fullname, email, username, password } = parsedBody.data;
+
   const exitedUser = await User.findOne({
     $or: [{ email }, { username: username.toLowerCase() }],
   });
 
   if (exitedUser) {
-    throw new ApiError(409, "User with email or password already exit.");
+    throw new ApiError(409, "User already exists");
   }
-  const avatarlocalPath = files.avatar[0]?.path || "";
-  const coverImagelocalPath = files.coverImage?.[0]?.path || "";
+
+  // Extract validated files
+  const avatarlocalPath = parsedFiles.data.avatar?.[0].path || "";
+  const coverImagelocalPath = parsedFiles.data.coverImage?.[0].path || "";
+
   // filter empty values
   const localFiles = [avatarlocalPath, coverImagelocalPath].filter(Boolean);
 
   let uploadResult;
   try {
     uploadResult = (await muiltithreadUpload(localFiles)) as UploadResponse[];
-    logger.debug("Uploaded avatar", uploadResult);
+    logger.debug("files uploaded successfully", uploadResult);
   } catch (error) {
     logger.debug("Error uploading avatar.", {
       message: (error as Error).message,
@@ -81,7 +98,6 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
     });
     throw new ApiError(500, "Failed to Upload avatar.");
   }
-
   let coverImageUrl: string = "";
   let avatarImageUrl: string = "";
   uploadResult.forEach((file) => {
@@ -103,9 +119,10 @@ const registerUser = asyncHandler<Request>(async (req, res) => {
       password,
     });
 
-    const createdUser = await User.findById(user.id).select(
-      "-password -refreshToken"
-    );
+    const createdUser = await User.findById(user.id, {
+      password: false,
+      refreshToken: false,
+    });
     if (!createdUser) {
       throw new ApiError(409, "user regestration failed.");
     }
@@ -321,8 +338,13 @@ const updateAccountDetails = asyncHandler<Request>(async (req, res) => {
 
 const updateAvatar = asyncHandler<Request>(async (req, res) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const avatarLocalPath = files.avatar?.[0]?.path || "";
+  const parsedFile = uploadAvatarFileSchema.safeParse(files);
+  if (!parsedFile.success) {
+    await fs.unlink(files.avatar[0].path);
+    throw new ValidationError(parsedFile.error);
+  }
 
+  const avatarLocalPath = parsedFile.data.avatar?.[0]?.path || "";
   if (!avatarLocalPath) {
     throw new ApiError(400, "Failed to update avatar.");
   }
@@ -359,8 +381,13 @@ const updateAvatar = asyncHandler<Request>(async (req, res) => {
 
 const updateCoverImage = asyncHandler<Request>(async (req, res) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const coverImagelocalPath = files.coverImage?.[0]?.path || "";
+  const parsedFile = uploadCoverImageFileSchema.safeParse(files);
+  if (!parsedFile.success) {
+    await fs.unlink(files.coverImage[0].path);
+    throw new ValidationError(parsedFile.error);
+  }
 
+  const coverImagelocalPath = parsedFile.data.coverImage?.[0]?.path || "";
   if (!coverImagelocalPath) {
     throw new ApiError(400, "Failed to update avatar.");
   }
