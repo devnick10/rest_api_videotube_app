@@ -1,19 +1,22 @@
-import { parentPort, workerData } from "node:worker_threads";
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs/promises";
-import { console } from "node:inspector";
-import process from "node:process";
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { parentPort, workerData } = require("node:worker_threads");
+const { v2: cloudinary } = require("cloudinary");
+const fs = require("fs/promises");
+const process = require("node:process");
+const { console } = require("node:inspector");
 
-const cloudinaryUploader = async (images) => {
+async function cloudinaryUploader(images) {
   cloudinary.config({
-    cloud_name: `${process.env.CLOUDINARY_CLOUD_NAME}`,
-    api_key: `${process.env.CLOUDINARY_API_KEY}`,
-    api_secret: `${process.env.CLOUDINARY_API_SECRET}`,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
   try {
     if (!images || images.length === 0) return [];
-    // Upload all images in parallel
+
     const uploadResults = await Promise.all(
       images.map((localFilePath) =>
         cloudinary.uploader.upload(localFilePath, {
@@ -27,9 +30,10 @@ const cloudinaryUploader = async (images) => {
         })
       )
     );
-    // Delete local files after all uploads complete
+
     await Promise.all(images.map((file) => fs.unlink(file)));
-    console.log("local files deleted after aupload");
+    console.log("Local files deleted after upload");
+
     return uploadResults.map((result, index) => ({
       ...result,
       localFilePath: images[index],
@@ -39,17 +43,21 @@ const cloudinaryUploader = async (images) => {
       message: error.message,
       stack: error.stack,
     });
-    // remove the locally saved temp file.
+
     await Promise.all(images.map((file) => fs.unlink(file)));
     return null;
   }
-};
-
-function uploadImages() {
-  const data = workerData;
-  cloudinaryUploader(data).then((result) => {
-    parentPort?.postMessage(result);
-  });
-  // Send data back to main thread using parentPort.postMessage
 }
+
+async function uploadImages() {
+  const data = workerData;
+
+  try {
+    const result = await cloudinaryUploader(data);
+    parentPort.postMessage(result);
+  } catch (error) {
+    parentPort.postMessage(null);
+  }
+}
+
 uploadImages();
