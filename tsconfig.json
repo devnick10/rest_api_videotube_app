@@ -9,5 +9,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src", "*.d.ts"]
+  "include": ["src", "*.d.ts"],
+  "exclude": ["src/multithreading/*.js"]
 }
