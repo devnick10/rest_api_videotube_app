@@ -15,6 +15,7 @@ import {
   updateVideoParamsSchema,
   updateVideoSchema,
 } from "../schema/videoSchema";
+import fs from "node:fs/promises";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { success, error, data } = getAllVideosSchema.safeParse(req.query);
@@ -107,6 +108,8 @@ const publishAVideo = asyncHandler<Request>(async (req, res) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { success, error, data } = publishVideoSchema.safeParse(req.body);
   if (!success) {
+    await fs.unlink(files.videoFile[0].path);
+    await fs.unlink(files.thumbnail[0].path);
     throw new ValidationError(error);
   }
   const { title, description } = data;
@@ -178,6 +181,7 @@ const updateVideo = asyncHandler<Request>(async (req, res) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { success, error, data } = updateVideoSchema.safeParse(req.body);
   if (!success) {
+    await fs.unlink(files.videoFile[0].path);
     throw new ValidationError(error);
   }
 
