@@ -1,6 +1,6 @@
 import path from "path";
 import { Worker } from "worker_threads";
-const WORKER_FILE_PATH = path.join(__dirname, "worker.js");
+const WORKER_FILE_PATH = path.join(__dirname, "./worker.js");
 
 type FileData = string[];
 
